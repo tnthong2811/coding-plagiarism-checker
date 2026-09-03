@@ -24,6 +24,7 @@ export function DashboardPage() {
       <p>
         Auth service health: <strong>{healthStatus}</strong>
       </p>
+      {user?.role === "STUDENT" && <p>You can now upload your assignment from the Submit Assignment page.</p>}
       <p>This frontend currently covers auth use cases of phase 1.</p>
     </section>
   );

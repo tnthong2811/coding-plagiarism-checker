@@ -16,8 +16,8 @@ export function LoginPage() {
     setSubmitting(true);
 
     try {
-      await login({ username, password });
-      navigate("/dashboard", { replace: true });
+      const profile = await login({ username, password });
+      navigate(profile.role === "STUDENT" ? "/submissions/upload" : "/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

@@ -176,14 +176,14 @@ docker run -p 8081:8081 coding-plagiarism-checker/auth:local
 ```
 POST   /api/auth/login         - Đăng nhập
 POST   /api/auth/register      - Đăng ký
-POST   /api/auth/verify        - Xác thực token
+GET    /api/auth/me            - Lấy thông tin user hiện tại (JWT)
+POST   /api/auth/admin/users   - Admin tạo user theo role
 ```
 
 ### Submission Service (8082)
 ```
 POST   /api/submissions/upload       - Nộp bài
-GET    /api/submissions/{id}         - Lấy chi tiết nộp bài
-GET    /api/submissions              - Danh sách nộp bài
+GET    /api/submissions/mine         - Danh sách bài nộp của user hiện tại
 ```
 
 ### Analyzer Service (8083)

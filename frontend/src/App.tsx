@@ -8,6 +8,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { MePage } from "./pages/MePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { SubmissionUploadPage } from "./pages/SubmissionUploadPage";
 
 export default function App() {
   return (
@@ -21,6 +22,10 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/me" element={<MePage />} />
+
+            <Route element={<RoleRoute allowed={["STUDENT"]} />}>
+              <Route path="/submissions/upload" element={<SubmissionUploadPage />} />
+            </Route>
 
             <Route element={<RoleRoute allowed={["ADMIN"]} />}>
               <Route path="/admin/users" element={<AdminCreateUserPage />} />

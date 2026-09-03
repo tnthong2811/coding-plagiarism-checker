@@ -6,7 +6,7 @@ interface AuthContextValue {
   token: string | null;
   user: UserProfile | null;
   loading: boolean;
-  login: (payload: LoginRequest) => Promise<void>;
+  login: (payload: LoginRequest) => Promise<UserProfile>;
   register: (payload: RegisterRequest) => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(TOKEN_KEY, response.token);
     const profile = await meApi(response.token);
     setUser(profile);
+    return profile;
   }
 
   async function register(payload: RegisterRequest) {

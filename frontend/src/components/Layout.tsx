@@ -11,6 +11,7 @@ export function Layout() {
         <nav>
           <Link to="/dashboard">Dashboard</Link>
           <Link to="/me">My Profile</Link>
+          {user?.role === "STUDENT" && <Link to="/submissions/upload">Submit Assignment</Link>}
           {user?.role === "ADMIN" && <Link to="/admin/users">Admin: Create User</Link>}
           <button type="button" onClick={logout}>Logout</button>
         </nav>

@@ -107,3 +107,20 @@ pre {
   overflow: auto;
 }
 
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+th,
+td {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background: #f3f4f6;
+}
+

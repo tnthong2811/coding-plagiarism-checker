@@ -1,19 +1,36 @@
 const API_BASE = import.meta.env.VITE_AUTH_API_BASE || "";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {})
-    },
-    ...init
+  const url = `${API_BASE}${path}`;
+  const headers = new Headers(init?.headers);
+  if (init?.body != null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const response = await fetch(url, {
+    ...init,
+    headers
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: any = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+  }
 
   if (!response.ok) {
-    const message = data?.message || `${response.status} ${response.statusText}`;
+    const serverMessage = data?.message || data?.error || text;
+    const message = `${response.status} ${response.statusText} @ ${url}${serverMessage ? ` - ${serverMessage}` : ""}`;
+    console.error("API request failed", {
+      url,
+      method: init?.method || "GET",
+      status: response.status,
+      statusText: response.statusText,
+      responseBody: text
+    });
     throw new Error(message);
   }
 
