@@ -4,6 +4,7 @@ import com.plagiarism.submission.model.Submission;
 import com.plagiarism.submission.service.SubmissionService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,6 +58,12 @@ public class SubmissionController {
             return ResponseEntity.status(401).build();
         }
         return ResponseEntity.ok(submissionService.getMySubmissions(authentication.getName()));
+    }
+
+    @GetMapping("/history")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public ResponseEntity<List<Submission>> history() {
+        return ResponseEntity.ok(submissionService.getSubmissionHistory());
     }
 }
 

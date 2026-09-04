@@ -10,6 +10,7 @@ import { MePage } from "./pages/MePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SubmissionUploadPage } from "./pages/SubmissionUploadPage";
+import { TeacherSubmissionHistoryPage } from "./pages/TeacherSubmissionHistoryPage";
 
 export default function App() {
   return (
@@ -26,6 +27,10 @@ export default function App() {
 
             <Route element={<RoleRoute allowed={["STUDENT"]} />}>
               <Route path="/submissions/upload" element={<SubmissionUploadPage />} />
+            </Route>
+
+            <Route element={<RoleRoute allowed={["TEACHER"]} />}>
+              <Route path="/teacher/submissions/history" element={<TeacherSubmissionHistoryPage />} />
             </Route>
 
             <Route element={<RoleRoute allowed={["ADMIN"]} />}>

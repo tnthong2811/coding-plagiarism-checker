@@ -20,7 +20,9 @@ export function LoginPage() {
       const target =
         profile.role === "ADMIN"
           ? "/admin"
-          : profile.role === "STUDENT"
+          : profile.role === "TEACHER"
+            ? "/teacher/submissions/history"
+            : profile.role === "STUDENT"
             ? "/submissions/upload"
             : "/dashboard";
       navigate(target, { replace: true });

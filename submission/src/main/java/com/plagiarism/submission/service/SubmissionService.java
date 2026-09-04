@@ -73,6 +73,10 @@ public class SubmissionService {
         return submissionRepository.findBySubmittedByOrderByCreatedAtDesc(username);
     }
 
+    public List<Submission> getSubmissionHistory() {
+        return submissionRepository.findAllByOrderByCreatedAtDesc();
+    }
+
     private void ensureBucketExists() throws Exception {
         boolean exists = minioClient.bucketExists(
                 BucketExistsArgs.builder().bucket(minioProperties.getBucketName()).build()

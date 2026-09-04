@@ -7,5 +7,7 @@ import java.util.List;
 
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findBySubmittedByOrderByCreatedAtDesc(String submittedBy);
+
+    List<Submission> findAllByOrderByCreatedAtDesc();
 }
 
