@@ -20,7 +20,7 @@ RUN mvn -T 1C clean package -pl analyzer -am -DskipTests
 # ============================================
 # Stage 2: Runtime
 # ============================================
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jdk-alpine
 
 WORKDIR /app
 

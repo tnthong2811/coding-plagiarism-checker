@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const authTarget = env.VITE_AUTH_API_BASE || "http://127.0.0.1:8081";
   const submissionTarget = env.VITE_SUBMISSION_API_BASE || "http://127.0.0.1:8082";
+  const analyzerTarget = env.VITE_ANALYZER_API_BASE || "http://127.0.0.1:8083";
 
   return {
     plugins: [react()],
@@ -43,6 +44,14 @@ export default defineConfig(({ mode }) => {
           proxyTimeout: 10000,
           configure: attachProxyLogging("submission"),
           rewrite: (path) => path.replace(/^\/submission-api/, "")
+        },
+        "/analyzer-api": {
+          target: analyzerTarget,
+          changeOrigin: true,
+          timeout: 15000,
+          proxyTimeout: 15000,
+          configure: attachProxyLogging("analyzer"),
+          rewrite: (path) => path.replace(/^\/analyzer-api/, "")
         }
       }
     }
