@@ -6,6 +6,7 @@ import com.plagiarism.auth.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -38,6 +39,21 @@ public class UserService {
 
     public boolean checkPassword(User user, String rawPassword) {
         return passwordEncoder.matches(rawPassword, user.getPasswordHash());
+    }
+
+    public List<User> findAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+
+    public User updateRole(Long id, UserRole role) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("user not found"));
+        user.setRole(role.name());
+        return userRepository.save(user);
     }
 }
 

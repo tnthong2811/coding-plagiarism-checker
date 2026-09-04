@@ -56,3 +56,15 @@ export async function postJson<TResponse, TBody>(
   });
 }
 
+export async function putJson<TResponse, TBody>(
+  path: string,
+  body: TBody,
+  token?: string
+): Promise<TResponse> {
+  return request<TResponse>(path, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+}
+

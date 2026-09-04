@@ -28,3 +28,13 @@ export interface CreateUserRequest {
   role: UserRole;
 }
 
+export interface AdminUser {
+  id: number;
+  username: string;
+  role: UserRole;
+}
+
+export interface UpdateUserRoleRequest {
+  role: UserRole;
+}
+

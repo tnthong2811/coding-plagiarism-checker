@@ -3,6 +3,7 @@ import { AuthProvider } from "./auth/AuthContext";
 import { ProtectedRoute, RoleRoute } from "./auth/Guards";
 import { Layout } from "./components/Layout";
 import { AdminCreateUserPage } from "./pages/AdminCreateUserPage";
+import { AdminUserManagementPage } from "./pages/AdminUserManagementPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MePage } from "./pages/MePage";
@@ -28,6 +29,8 @@ export default function App() {
             </Route>
 
             <Route element={<RoleRoute allowed={["ADMIN"]} />}>
+              <Route path="/admin" element={<AdminUserManagementPage />} />
+              <Route path="/admin/users/manage" element={<AdminUserManagementPage />} />
               <Route path="/admin/users" element={<AdminCreateUserPage />} />
             </Route>
           </Route>

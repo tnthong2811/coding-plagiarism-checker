@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -65,6 +66,31 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("id", u.getId(), "username", u.getUsername(), "role", u.getRole()));
     }
 
+    @GetMapping("/admin/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> listUsers() {
+        List<Map<String, Object>> users = userService.findAllUsers().stream()
+                .map(u -> Map.<String, Object>of(
+                        "id", u.getId(),
+                        "username", u.getUsername(),
+                        "role", u.getRole()
+                ))
+                .toList();
+        return ResponseEntity.ok(users);
+    }
+
+    @RequestMapping(value = "/admin/users/{id}/role", method = {RequestMethod.PUT, RequestMethod.POST})
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUserRole(@PathVariable("id") Long id, @RequestBody UpdateUserRoleRequest req) {
+        UserRole role = UserRole.fromString(req.getRole());
+        return userService.findById(id)
+                .map(u -> {
+                    User updated = userService.updateRole(id, role);
+                    return ResponseEntity.ok(Map.of("id", updated.getId(), "username", updated.getUsername(), "role", updated.getRole()));
+                })
+                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "user not found")));
+    }
+
     @Data
     static class RegisterRequest {
         private String username;
@@ -81,6 +107,11 @@ public class AuthController {
     static class CreateUserRequest {
         private String username;
         private String password;
+        private String role;
+    }
+
+    @Data
+    static class UpdateUserRoleRequest {
         private String role;
     }
 }

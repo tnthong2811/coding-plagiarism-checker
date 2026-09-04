@@ -17,7 +17,13 @@ export function LoginPage() {
 
     try {
       const profile = await login({ username, password });
-      navigate(profile.role === "STUDENT" ? "/submissions/upload" : "/dashboard", { replace: true });
+      const target =
+        profile.role === "ADMIN"
+          ? "/admin"
+          : profile.role === "STUDENT"
+            ? "/submissions/upload"
+            : "/dashboard";
+      navigate(target, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
