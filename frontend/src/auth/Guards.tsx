@@ -6,7 +6,7 @@ export function ProtectedRoute() {
   const { token, loading } = useAuth();
 
   if (loading) {
-    return <p>Checking session...</p>;
+    return <main className="not-found-page"><p className="panel route-loading">Checking session...</p></main>;
   }
 
   if (!token) {
@@ -20,7 +20,7 @@ export function RoleRoute({ allowed }: { allowed: UserRole[] }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <p>Checking permissions...</p>;
+    return <main className="not-found-page"><p className="panel route-loading">Checking permissions...</p></main>;
   }
 
   if (!user || !allowed.includes(user.role)) {

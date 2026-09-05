@@ -45,4 +45,11 @@ public class ReportService {
                 .map(AnalysisReport::toCompareResponse)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
     }
+
+    public ReportSummaryResponse deleteReport(String id) {
+        AnalysisReport report = reportRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
+        reportRepository.delete(report);
+        return ReportSummaryResponse.from(report);
+    }
 }

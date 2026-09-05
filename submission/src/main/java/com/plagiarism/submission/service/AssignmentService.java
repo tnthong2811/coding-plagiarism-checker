@@ -3,6 +3,7 @@ package com.plagiarism.submission.service;
 import com.plagiarism.submission.dto.CreateAssignmentRequest;
 import com.plagiarism.submission.model.Assignment;
 import com.plagiarism.submission.repository.AssignmentRepository;
+import com.plagiarism.submission.repository.SubmissionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +16,11 @@ import java.util.Locale;
 public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
+    private final SubmissionRepository submissionRepository;
 
-    public AssignmentService(AssignmentRepository assignmentRepository) {
+    public AssignmentService(AssignmentRepository assignmentRepository, SubmissionRepository submissionRepository) {
         this.assignmentRepository = assignmentRepository;
+        this.submissionRepository = submissionRepository;
     }
 
     @Transactional
@@ -40,6 +43,15 @@ public class AssignmentService {
     public Assignment getAssignment(Long id) {
         return assignmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found"));
+    }
+
+    @Transactional
+    public Assignment deleteAssignment(Long id) {
+        Assignment assignment = assignmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found"));
+        submissionRepository.deleteByAssignment_Id(id);
+        assignmentRepository.delete(assignment);
+        return assignment;
     }
 
     private String normalizeOptionalText(String value) {

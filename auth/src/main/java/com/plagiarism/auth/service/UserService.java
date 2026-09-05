@@ -3,8 +3,11 @@ package com.plagiarism.auth.service;
 import com.plagiarism.auth.model.User;
 import com.plagiarism.auth.model.UserRole;
 import com.plagiarism.auth.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +57,17 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
         user.setRole(role.name());
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public User deleteById(Long id, String currentUsername) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
+        if (user.getUsername().equals(currentUsername)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cannot delete your own account");
+        }
+        userRepository.delete(user);
+        return user;
     }
 }
 

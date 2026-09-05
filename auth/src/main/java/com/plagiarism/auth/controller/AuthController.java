@@ -91,6 +91,13 @@ public class AuthController {
                 .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "user not found")));
     }
 
+    @DeleteMapping("/admin/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUser(@PathVariable("id") Long id, Authentication authentication) {
+        User deleted = userService.deleteById(id, authentication.getName());
+        return ResponseEntity.ok(Map.of("id", deleted.getId(), "username", deleted.getUsername(), "role", deleted.getRole()));
+    }
+
     @Data
     static class RegisterRequest {
         private String username;

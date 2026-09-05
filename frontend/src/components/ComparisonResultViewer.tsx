@@ -90,10 +90,14 @@ function SourcePane({
 }: SourcePaneProps) {
   if (!source || !selectedFile) {
     return (
-      <div className="source-pane">
-        <h4>{title}</h4>
-        <p>{subtitle}</p>
-        <p>No matching source file is available for this submission.</p>
+      <div className="source-pane source-pane--empty">
+        <div className="source-pane__header">
+          <div>
+            <h4>{title}</h4>
+            <p>{subtitle}</p>
+          </div>
+        </div>
+        <p className="empty-state">No matching source file is available for this submission.</p>
       </div>
     );
   }
@@ -197,18 +201,40 @@ export function ComparisonResultViewer({ result }: ComparisonResultViewerProps) 
   const rightSelectedFile = rightSourceFiles.find((file) => file.path === rightSelectedPath) ?? rightSourceFiles[0];
 
   return (
-    <div className="jplag-result">
-      <h3>JPlag Result</h3>
-      <p>
-        Compared <strong>{result.submissionCount}</strong> {result.language} submissions in{" "}
-        <strong>{result.durationMs} ms</strong>
-        {result.reportId ? <> - Report <strong>{result.reportId}</strong></> : null}
-      </p>
-      {result.message && <p>{result.message}</p>}
+    <section className="panel jplag-result">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">JPlag analysis</p>
+          <h2>Comparison result</h2>
+        </div>
+      </div>
+
+      <div className="result-stats">
+        <article>
+          <span>Submissions</span>
+          <strong>{result.submissionCount}</strong>
+        </article>
+        <article>
+          <span>Language</span>
+          <strong>{result.language}</strong>
+        </article>
+        <article>
+          <span>Duration</span>
+          <strong>{result.durationMs} ms</strong>
+        </article>
+        {result.reportId && (
+          <article>
+            <span>Report</span>
+            <strong>{result.reportId}</strong>
+          </article>
+        )}
+      </div>
+
+      {result.message && <p className="alert alert-info">{result.message}</p>}
       {comparisons.length > 0 && (
         <>
-          <div style={{ overflowX: "auto" }}>
-            <table>
+          <div className="table-shell">
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>Pair</th>
@@ -239,7 +265,11 @@ export function ComparisonResultViewer({ result }: ComparisonResultViewerProps) 
                     <td>{item.minimalSimilarityPercent}</td>
                     <td>{item.matchedTokens}</td>
                     <td>
-                      <button type="button" onClick={() => setActiveComparisonIndex(index)}>
+                      <button
+                        className="button button-subtle button-small"
+                        type="button"
+                        onClick={() => setActiveComparisonIndex(index)}
+                      >
                         View code
                       </button>
                     </td>
@@ -304,6 +334,6 @@ export function ComparisonResultViewer({ result }: ComparisonResultViewerProps) 
           )}
         </>
       )}
-    </div>
+    </section>
   );
 }

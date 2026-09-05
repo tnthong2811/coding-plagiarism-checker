@@ -68,3 +68,10 @@ export async function putJson<TResponse, TBody>(
   });
 }
 
+export async function deleteJson<T>(path: string, token?: string): Promise<T> {
+  return request<T>(path, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+}
+

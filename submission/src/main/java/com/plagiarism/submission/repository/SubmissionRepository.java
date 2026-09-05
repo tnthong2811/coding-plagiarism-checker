@@ -13,5 +13,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findByAssignment_IdOrderByCreatedAtDesc(Long assignmentId);
 
     List<Submission> findAllByOrderByCreatedAtDesc();
+
+    long deleteByAssignment_Id(Long assignmentId);
 }
 

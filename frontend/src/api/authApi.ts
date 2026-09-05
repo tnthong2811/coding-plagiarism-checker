@@ -1,4 +1,4 @@
-import { getJson, postJson } from "./client";
+import { deleteJson, getJson, postJson } from "./client";
 import type {
   AdminUser,
   CreateUserRequest,
@@ -35,5 +35,9 @@ export function listUsersByAdmin(token: string) {
 
 export function updateUserRoleByAdmin(token: string, userId: number, payload: UpdateUserRoleRequest) {
   return postJson<AdminUser, UpdateUserRoleRequest>(`/api/auth/admin/users/${userId}/role`, payload, token);
+}
+
+export function deleteUserByAdmin(token: string, userId: number) {
+  return deleteJson<AdminUser>(`/api/auth/admin/users/${userId}`, token);
 }
 

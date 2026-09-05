@@ -66,6 +66,17 @@ export async function getAssignmentSubmissions(
   return readResponse<SubmissionResponse[]>(response);
 }
 
+export async function deleteAssignment(token: string, assignmentId: number): Promise<AssignmentResponse> {
+  const response = await fetch(`${SUBMISSION_BASE}/api/assignments/${assignmentId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return readResponse<AssignmentResponse>(response);
+}
+
 export async function getMyAssignmentSubmissions(
   token: string,
   assignmentId: number

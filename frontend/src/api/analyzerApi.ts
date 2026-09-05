@@ -57,3 +57,14 @@ export async function getReport(token: string, reportId: string): Promise<Compar
   return readResponse<ComparisonResponse>(response);
 }
 
+export async function deleteReport(token: string, reportId: string): Promise<ReportSummaryResponse> {
+  const response = await fetch(`${ANALYZER_BASE}/api/reports/${reportId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return readResponse<ReportSummaryResponse>(response);
+}
+

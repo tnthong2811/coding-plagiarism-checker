@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -59,6 +60,12 @@ public class AssignmentController {
     @GetMapping("/{id}")
     public ResponseEntity<AssignmentResponse> get(@PathVariable("id") Long id) {
         return ResponseEntity.ok(AssignmentResponse.from(assignmentService.getAssignment(id)));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public ResponseEntity<AssignmentResponse> delete(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(AssignmentResponse.from(assignmentService.deleteAssignment(id)));
     }
 
     @GetMapping("/{id}/submissions")

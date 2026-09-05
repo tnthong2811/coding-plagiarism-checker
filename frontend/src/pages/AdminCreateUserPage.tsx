@@ -37,39 +37,82 @@ export function AdminCreateUserPage() {
   }
 
   return (
-    <section className="card">
-      <h2>Admin - Create User</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Username
-          <input value={username} onChange={(e) => setUsername(e.target.value)} required />
-        </label>
+    <div className="page-stack">
+      <section className="page-header">
+        <div>
+          <p className="eyebrow">Administration</p>
+          <h1>Create User</h1>
+          <p>Create a student, teacher, or admin account with the selected role.</p>
+        </div>
+        <span className="role-badge role-badge--admin">ADMIN</span>
+      </section>
 
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
-            required
-          />
-        </label>
+      <div className="two-column-grid">
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">Account details</p>
+              <h2>New user</h2>
+            </div>
+          </div>
+          <form className="stacked-form" onSubmit={handleSubmit}>
+            <label>
+              Username
+              <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+            </label>
 
-        <label>
-          Role
-          <select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
-            <option value="STUDENT">STUDENT</option>
-            <option value="TEACHER">TEACHER</option>
-            <option value="ADMIN">ADMIN</option>
-          </select>
-        </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                required
+              />
+            </label>
 
-        {result && <p className="success">{result}</p>}
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={submitting}>{submitting ? "Creating..." : "Create user"}</button>
-      </form>
-    </section>
+            <label>
+              Role
+              <select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
+                <option value="STUDENT">STUDENT</option>
+                <option value="TEACHER">TEACHER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </label>
+
+            {result && <p className="alert alert-success">{result}</p>}
+            {error && <p className="alert alert-error">{error}</p>}
+            <button className="button button-primary" type="submit" disabled={submitting}>
+              {submitting ? "Creating..." : "Create user"}
+            </button>
+          </form>
+        </section>
+
+        <section className="panel detail-panel">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">Role preview</p>
+              <h2>{role}</h2>
+            </div>
+          </div>
+          <dl className="detail-list">
+            <div>
+              <dt>STUDENT</dt>
+              <dd>Can submit assignment source files.</dd>
+            </div>
+            <div>
+              <dt>TEACHER</dt>
+              <dd>Can create assignments, compare submissions, and open reports.</dd>
+            </div>
+            <div>
+              <dt>ADMIN</dt>
+              <dd>Can manage users and access review workflows.</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    </div>
   );
 }
 
