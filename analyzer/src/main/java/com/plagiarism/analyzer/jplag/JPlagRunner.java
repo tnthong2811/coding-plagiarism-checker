@@ -91,7 +91,7 @@ public class JPlagRunner {
 
             log.info("Running JPlag {} analysis for {} submissions", sourceLanguage.responseValue, lookup.size());
             JPlagResult jPlagResult = new JPlag(options).run();
-            return toResponse(sourceLanguage, jPlagResult, lookup, sourceLookup);
+            return toResponse(request, sourceLanguage, jPlagResult, lookup, sourceLookup);
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
@@ -442,12 +442,14 @@ public class JPlagRunner {
         return lines;
     }
 
-    private CompareResponse toResponse(SourceLanguage sourceLanguage,
+    private CompareResponse toResponse(CompareRequest request,
+                                       SourceLanguage sourceLanguage,
                                        JPlagResult result,
                                        Map<String, CompareRequest.SubmissionPayload> lookup,
                                        Map<String, CompareResponse.ComparedSubmissionSource> sourceLookup) {
         CompareResponse response = new CompareResponse();
         response.setSuccess(true);
+        response.setAssignmentId(request.getAssignmentId());
         response.setLanguage(sourceLanguage.responseValue);
         response.setSubmissionCount(lookup.size());
         response.setDurationMs(result.getDuration());
@@ -655,4 +657,3 @@ public class JPlagRunner {
         }
     }
 }
-

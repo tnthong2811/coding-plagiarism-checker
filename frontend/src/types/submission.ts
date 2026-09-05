@@ -1,10 +1,33 @@
+export interface AssignmentResponse {
+  id: number;
+  title: string;
+  description?: string | null;
+  language: AnalysisLanguage;
+  dueAt?: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateAssignmentRequest {
+  title: string;
+  description?: string | null;
+  language?: AnalysisLanguage;
+  dueAt?: string | null;
+}
+
 export interface SubmissionResponse {
   id: number;
+  assignmentId?: number | null;
+  assignmentTitle?: string | null;
   submittedBy: string;
   originalFileName: string;
   objectKey: string;
+  fileSize?: number;
+  contentType?: string;
   status: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export type AnalysisLanguage = "AUTO" | "JAVA" | "CPP";
@@ -17,8 +40,22 @@ export interface ComparisonSubmissionInput {
 }
 
 export interface ComparisonRequest {
+  assignmentId?: number;
   language?: AnalysisLanguage;
   submissions: ComparisonSubmissionInput[];
+}
+
+export interface ReportSummaryResponse {
+  id: string;
+  assignmentId?: number | null;
+  language: string;
+  submissionCount: number;
+  comparisonCount: number;
+  maxSimilarityPercent: number;
+  durationMs: number;
+  generatedAt: string;
+  requestedBy?: string | null;
+  message?: string | null;
 }
 
 export interface ComparedSourceFile {
@@ -66,7 +103,9 @@ export interface ComparisonPair {
 }
 
 export interface ComparisonResponse {
+  reportId?: string;
   success: boolean;
+  assignmentId?: number;
   language: string;
   submissionCount: number;
   durationMs: number;

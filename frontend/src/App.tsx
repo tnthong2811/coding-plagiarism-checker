@@ -9,6 +9,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { MePage } from "./pages/MePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ReportsPage } from "./pages/ReportsPage";
 import { SubmissionUploadPage } from "./pages/SubmissionUploadPage";
 import { TeacherSubmissionHistoryPage } from "./pages/TeacherSubmissionHistoryPage";
 
@@ -29,8 +30,9 @@ export default function App() {
               <Route path="/submissions/upload" element={<SubmissionUploadPage />} />
             </Route>
 
-            <Route element={<RoleRoute allowed={["TEACHER"]} />}>
+            <Route element={<RoleRoute allowed={["TEACHER", "ADMIN"]} />}>
               <Route path="/teacher/submissions/history" element={<TeacherSubmissionHistoryPage />} />
+              <Route path="/teacher/reports" element={<ReportsPage />} />
             </Route>
 
             <Route element={<RoleRoute allowed={["ADMIN"]} />}>

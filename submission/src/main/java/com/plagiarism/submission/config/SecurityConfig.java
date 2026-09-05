@@ -36,6 +36,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/assignments").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/assignments/*/submissions").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/submissions/upload").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.GET, "/api/submissions/history").hasAnyRole("TEACHER", "ADMIN")
                         .anyRequest().authenticated()

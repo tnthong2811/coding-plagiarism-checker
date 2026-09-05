@@ -7,7 +7,9 @@ import java.util.List;
 
 @Data
 public class CompareResponse {
+    private String reportId;
     private boolean success;
+    private Long assignmentId;
     private String language;
     private int submissionCount;
     private long durationMs;

@@ -1,5 +1,6 @@
 package com.plagiarism.submission.controller;
 
+import com.plagiarism.submission.dto.SubmissionResponse;
 import com.plagiarism.submission.model.Submission;
 import com.plagiarism.submission.service.SubmissionService;
 import org.springframework.http.MediaType;
@@ -28,7 +29,9 @@ public class SubmissionController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file, Authentication authentication) {
+    public ResponseEntity<?> upload(@RequestParam("assignmentId") Long assignmentId,
+                                    @RequestParam("file") MultipartFile file,
+                                    Authentication authentication) {
         if (authentication == null || authentication.getPrincipal() == null) {
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         }
@@ -41,29 +44,30 @@ public class SubmissionController {
             username = authentication.getName();
         }
 
-        Submission saved = submissionService.upload(username, file);
-        return ResponseEntity.ok(Map.of(
-                "id", saved.getId(),
-                "submittedBy", saved.getSubmittedBy(),
-                "originalFileName", saved.getOriginalFileName(),
-                "objectKey", saved.getObjectKey(),
-                "status", saved.getStatus(),
-                "createdAt", saved.getCreatedAt()
-        ));
+        try {
+            Submission saved = submissionService.upload(username, assignmentId, file);
+            return ResponseEntity.ok(SubmissionResponse.from(saved));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/mine")
-    public ResponseEntity<List<Submission>> mine(Authentication authentication) {
+    public ResponseEntity<List<SubmissionResponse>> mine(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(submissionService.getMySubmissions(authentication.getName()));
+        return ResponseEntity.ok(submissionService.getMySubmissions(authentication.getName()).stream()
+                .map(SubmissionResponse::from)
+                .toList());
     }
 
     @GetMapping("/history")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
-    public ResponseEntity<List<Submission>> history() {
-        return ResponseEntity.ok(submissionService.getSubmissionHistory());
+    public ResponseEntity<List<SubmissionResponse>> history() {
+        return ResponseEntity.ok(submissionService.getSubmissionHistory().stream()
+                .map(SubmissionResponse::from)
+                .toList());
     }
 }
 

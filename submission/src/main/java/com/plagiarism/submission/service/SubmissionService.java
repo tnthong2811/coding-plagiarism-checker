@@ -1,15 +1,19 @@
 package com.plagiarism.submission.service;
 
 import com.plagiarism.submission.config.MinioProperties;
+import com.plagiarism.submission.model.Assignment;
 import com.plagiarism.submission.model.Submission;
+import com.plagiarism.submission.repository.AssignmentRepository;
 import com.plagiarism.submission.repository.SubmissionRepository;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.errors.MinioException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,22 +26,30 @@ public class SubmissionService {
     private final MinioClient minioClient;
     private final MinioProperties minioProperties;
     private final SubmissionRepository submissionRepository;
+    private final AssignmentRepository assignmentRepository;
 
     public SubmissionService(MinioClient minioClient,
                              MinioProperties minioProperties,
-                             SubmissionRepository submissionRepository) {
+                             SubmissionRepository submissionRepository,
+                             AssignmentRepository assignmentRepository) {
         this.minioClient = minioClient;
         this.minioProperties = minioProperties;
         this.submissionRepository = submissionRepository;
+        this.assignmentRepository = assignmentRepository;
     }
 
-    public Submission upload(String submittedBy, MultipartFile file) {
+    public Submission upload(String submittedBy, Long assignmentId, MultipartFile file) {
+        if (assignmentId == null) {
+            throw new IllegalArgumentException("Assignment is required");
+        }
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
 
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found"));
         String originalName = file.getOriginalFilename() == null ? "submission.zip" : file.getOriginalFilename();
-        String objectKey = submittedBy + "/" + UUID.randomUUID() + "-" + originalName;
+        String objectKey = "assignments/" + assignment.getId() + "/" + submittedBy + "/" + UUID.randomUUID() + "-" + originalName;
         String contentType = file.getContentType() == null ? "application/octet-stream" : file.getContentType();
 
         try {
@@ -59,6 +71,7 @@ public class SubmissionService {
         }
 
         Submission submission = new Submission();
+        submission.setAssignment(assignment);
         submission.setSubmittedBy(submittedBy);
         submission.setOriginalFileName(originalName);
         submission.setObjectKey(objectKey);
@@ -71,6 +84,14 @@ public class SubmissionService {
 
     public List<Submission> getMySubmissions(String username) {
         return submissionRepository.findBySubmittedByOrderByCreatedAtDesc(username);
+    }
+
+    public List<Submission> getMySubmissionsForAssignment(String username, Long assignmentId) {
+        return submissionRepository.findByAssignment_IdAndSubmittedByOrderByCreatedAtDesc(assignmentId, username);
+    }
+
+    public List<Submission> getSubmissionsForAssignment(Long assignmentId) {
+        return submissionRepository.findByAssignment_IdOrderByCreatedAtDesc(assignmentId);
     }
 
     public List<Submission> getSubmissionHistory() {
