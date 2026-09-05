@@ -264,4 +264,4 @@ MIT License © 2026 tnthong2811
 ## Liên Hệ
 
 - GitHub Issues: https://github.com/tnthong2811/coding-plagiarism-checker/issues
-- Email: tnthong2811@example.com
+- Email: 23020710@vnu.edu.vn
