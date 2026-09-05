@@ -11,6 +11,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      TZ: Asia/Ha_Noi
     ports:
       - "5432:5432"
     networks:
@@ -33,6 +34,8 @@ services:
       - plagiarism-network
     volumes:
       - mongodb_data:/data/db
+    environment:
+      TZ: Asia/Ha_Noi
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -48,6 +51,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      TZ: Asia/Ha_Noi
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -71,6 +75,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      TZ: Asia/Ha_Noi
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -97,6 +102,8 @@ services:
     env_file:
       - .env
     environment:
+      TZ: Asia/Ha_Noi
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ha_Noi"
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -126,6 +133,8 @@ services:
     env_file:
       - .env
     environment:
+      TZ: Asia/Ha_Noi
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ha_Noi"
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -164,6 +173,8 @@ services:
     env_file:
       - .env
     environment:
+      TZ: Asia/Ha_Noi
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ha_Noi"
       SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672

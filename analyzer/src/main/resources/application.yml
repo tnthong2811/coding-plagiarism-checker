@@ -20,12 +20,18 @@ spring:
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
 
 minio:
   url: ${MINIO_URL:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET_NAME:submissions}
+
+analyzer:
+  jplag:
+    minimum-token-match: ${JPLAG_MINIMUM_TOKEN_MATCH:3}
 
 # Actuator endpoints
 management:

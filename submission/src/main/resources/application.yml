@@ -25,6 +25,8 @@ spring:
     multipart:
       max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:50MB}
       max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:50MB}
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
 
 # Cấu hình MinIO tự định nghĩa
 minio:

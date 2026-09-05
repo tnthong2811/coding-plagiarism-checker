@@ -16,6 +16,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
 
 # Cấu hình JWT tự định nghĩa
 jwt:

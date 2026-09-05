@@ -6,7 +6,7 @@ import java.util.List;
 
 @Data
 public class CompareRequest {
-    private String language = "JAVA";
+    private String language = "AUTO";
     private List<SubmissionPayload> submissions;
 
     @Data

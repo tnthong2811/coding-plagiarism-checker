@@ -24,6 +24,9 @@ FROM eclipse-temurin:17-jdk-alpine
 
 WORKDIR /app
 
+# Install tzdata for timezone support
+RUN apk add --no-cache tzdata
+
 # Tạo non-root user để chạy application
 RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
 
@@ -36,7 +39,8 @@ RUN chown -R appuser:appuser /app
 # Switch sang non-root user
 USER appuser
 
-# Set Java memory options cho container
+# Set timezone và Java memory options cho container
+ENV TZ=Asia/Ha_Noi
 ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseContainerSupport"
 
 # Health check
@@ -44,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=20s \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8083/actuator/health || exit 1
 
 # Lệnh khởi động service
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Duser.timezone=$TZ -jar app.jar"]
