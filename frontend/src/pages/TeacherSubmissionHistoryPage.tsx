@@ -1,12 +1,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { compareWithJPlag } from "../api/analyzerApi";
-import { createAssignment, deleteAssignment, getAssignments, getAssignmentSubmissions } from "../api/submissionApi";
+import { createAssignment, deleteAssignment, getAssignments, getAssignmentSubmissions, getClassrooms } from "../api/submissionApi";
 import { useAuth } from "../auth/AuthContext";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ComparisonResultViewer } from "../components/ComparisonResultViewer";
 import type {
   AnalysisLanguage,
   AssignmentResponse,
+  ClassroomResponse,
   ComparisonResponse,
   SubmissionResponse
 } from "../types/submission";
@@ -28,6 +29,7 @@ function statusClass(status: string) {
 
 export function TeacherSubmissionHistoryPage() {
   const { token, user } = useAuth();
+  const [classrooms, setClassrooms] = useState<ClassroomResponse[]>([]);
   const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | "">("");
   const [rows, setRows] = useState<SubmissionResponse[]>([]);
@@ -40,6 +42,7 @@ export function TeacherSubmissionHistoryPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [comparisonResult, setComparisonResult] = useState<ComparisonResponse | null>(null);
   const [newAssignmentTitle, setNewAssignmentTitle] = useState("");
+  const [newAssignmentClassroomId, setNewAssignmentClassroomId] = useState<number | "">("");
   const [newAssignmentDescription, setNewAssignmentDescription] = useState("");
   const [newAssignmentLanguage, setNewAssignmentLanguage] = useState<AnalysisLanguage>("AUTO");
   const [newAssignmentDueAt, setNewAssignmentDueAt] = useState("");
@@ -50,6 +53,10 @@ export function TeacherSubmissionHistoryPage() {
   const selectedAssignment = useMemo(
     () => assignments.find((assignment) => assignment.id === selectedAssignmentId),
     [assignments, selectedAssignmentId]
+  );
+  const selectedNewAssignmentClassroom = useMemo(
+    () => classrooms.find((classroom) => classroom.id === newAssignmentClassroomId),
+    [classrooms, newAssignmentClassroomId]
   );
   const allAssignmentsSelected = assignments.length > 0
     && assignments.every((assignment) => selectedAssignmentDeleteIds.includes(assignment.id));
@@ -68,23 +75,34 @@ export function TeacherSubmissionHistoryPage() {
     setLoadingAssignments(true);
     setError(null);
     try {
-      const data = await getAssignments(token);
-      setAssignments(data);
+      const [classroomRows, assignmentRows] = await Promise.all([
+        getClassrooms(token),
+        getAssignments(token)
+      ]);
+      setClassrooms(classroomRows);
+      setAssignments(assignmentRows);
       setSelectedAssignmentDeleteIds((current) =>
-        current.filter((id) => data.some((assignment) => assignment.id === id))
+        current.filter((id) => assignmentRows.some((assignment) => assignment.id === id))
       );
-      setSelectedAssignmentId((current) => {
-        if (current && data.some((assignment) => assignment.id === current)) {
+      setNewAssignmentClassroomId((current) => {
+        if (current && classroomRows.some((classroom) => classroom.id === current)) {
           return current;
         }
-        return data[0]?.id ?? "";
+        return classroomRows[0]?.id ?? "";
       });
-      if (data.length === 0) {
+      setSelectedAssignmentId((current) => {
+        if (current && assignmentRows.some((assignment) => assignment.id === current)) {
+          return current;
+        }
+        return assignmentRows[0]?.id ?? "";
+      });
+      if (assignmentRows.length === 0) {
         setRows([]);
         setSelectedIds([]);
         clearComparisonResult();
       }
     } catch (err) {
+      setClassrooms([]);
       setAssignments([]);
       setRows([]);
       setError(err instanceof Error ? err.message : "Failed to load assignments");
@@ -155,10 +173,15 @@ export function TeacherSubmissionHistoryPage() {
       setError("Assignment title is required.");
       return;
     }
+    if (!newAssignmentClassroomId) {
+      setError("Classroom is required.");
+      return;
+    }
 
     setSavingAssignment(true);
     try {
       const created = await createAssignment(token, {
+        classroomId: newAssignmentClassroomId,
         title: newAssignmentTitle.trim(),
         description: newAssignmentDescription.trim() || null,
         language: newAssignmentLanguage,
@@ -173,7 +196,7 @@ export function TeacherSubmissionHistoryPage() {
       setNewAssignmentDescription("");
       setNewAssignmentLanguage("AUTO");
       setNewAssignmentDueAt("");
-      setMessage(`Created assignment #${created.id}`);
+      setMessage(`Created assignment #${created.id} in ${selectedNewAssignmentClassroom?.code ?? "classroom"}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create assignment");
     } finally {
@@ -258,13 +281,13 @@ export function TeacherSubmissionHistoryPage() {
     <div className="page-stack">
       <section className="page-header">
         <div>
-          <p className="eyebrow">{user?.role === "ADMIN" ? "Admin review workspace" : "Teacher workspace"}</p>
+          <p className="eyebrow">{user?.role === "BUSINESS_ADMIN" ? "Business admin review workspace" : "Teacher workspace"}</p>
           <h1>Assignments</h1>
           <p>
             Signed in as <strong>{user?.username}</strong>. Create assignments, inspect submissions, and launch comparisons.
           </p>
         </div>
-        <span className={`role-badge ${user?.role === "ADMIN" ? "role-badge--admin" : "role-badge--teacher"}`}>
+        <span className={`role-badge ${user?.role === "BUSINESS_ADMIN" ? "role-badge--business_admin" : "role-badge--teacher"}`}>
           {user?.role}
         </span>
       </section>
@@ -273,7 +296,7 @@ export function TeacherSubmissionHistoryPage() {
         <article className="stat-card">
           <span>Assignments</span>
           <strong>{assignments.length}</strong>
-          <small>{loadingAssignments ? "Loading..." : "Available to review"}</small>
+          <small>{loadingAssignments ? "Loading..." : `${classrooms.length} class${classrooms.length === 1 ? "" : "es"} in scope`}</small>
         </article>
         <article className="stat-card">
           <span>Submissions</span>
@@ -303,6 +326,25 @@ export function TeacherSubmissionHistoryPage() {
           </div>
         </div>
         <form className="assignment-form" onSubmit={handleCreateAssignment}>
+          <label>
+            Classroom
+            <select
+              value={newAssignmentClassroomId}
+              onChange={(event) => setNewAssignmentClassroomId(event.target.value ? Number(event.target.value) : "")}
+              required
+              disabled={loadingAssignments || classrooms.length === 0}
+            >
+              {classrooms.length === 0 ? (
+                <option value="">No classrooms</option>
+              ) : (
+                classrooms.map((classroom) => (
+                  <option key={classroom.id} value={classroom.id}>
+                    {classroom.code} - {classroom.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
           <label>
             Title
             <input
@@ -339,7 +381,7 @@ export function TeacherSubmissionHistoryPage() {
               maxLength={4000}
             />
           </label>
-          <button className="button button-primary" type="submit" disabled={savingAssignment}>
+          <button className="button button-primary" type="submit" disabled={savingAssignment || classrooms.length === 0}>
             {savingAssignment ? "Creating..." : "Create assignment"}
           </button>
         </form>
@@ -386,6 +428,7 @@ export function TeacherSubmissionHistoryPage() {
                     />
                   </th>
                   <th>ID</th>
+                  <th>Class</th>
                   <th>Title</th>
                   <th>Language</th>
                   <th>Due</th>
@@ -407,6 +450,7 @@ export function TeacherSubmissionHistoryPage() {
                       />
                     </td>
                     <td>#{assignment.id}</td>
+                    <td>{assignment.classroomCode ?? "Unassigned"}</td>
                     <td>{assignment.title}</td>
                     <td>{assignment.language}</td>
                     <td>{formatDate(assignment.dueAt)}</td>
@@ -448,7 +492,7 @@ export function TeacherSubmissionHistoryPage() {
               ) : (
                 assignments.map((assignment) => (
                   <option key={assignment.id} value={assignment.id}>
-                    #{assignment.id} - {assignment.title} ({assignment.language})
+                    {assignment.classroomCode ? `${assignment.classroomCode} - ` : ""}#{assignment.id} - {assignment.title} ({assignment.language})
                   </option>
                 ))
               )}
@@ -472,6 +516,10 @@ export function TeacherSubmissionHistoryPage() {
             <div>
               <span>Selected assignment</span>
               <strong>#{selectedAssignment.id} - {selectedAssignment.title}</strong>
+            </div>
+            <div>
+              <span>Class</span>
+              <strong>{selectedAssignment.classroomCode ?? "Unassigned"}</strong>
             </div>
             <div>
               <span>Due</span>

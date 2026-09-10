@@ -14,11 +14,14 @@ public class AdminBootstrap implements CommandLineRunner {
 
     private final UserService userService;
 
-    @Value("${BOOTSTRAP_ADMIN_USERNAME:}")
+    @Value("${bootstrap.admin.username:${BOOTSTRAP_ADMIN_USERNAME:}}")
     private String bootstrapUsername;
 
-    @Value("${BOOTSTRAP_ADMIN_PASSWORD:}")
+    @Value("${bootstrap.admin.password:${BOOTSTRAP_ADMIN_PASSWORD:}}")
     private String bootstrapPassword;
+
+    @Value("${bootstrap.admin.role:${BOOTSTRAP_ADMIN_ROLE:BUSINESS_ADMIN}}")
+    private String bootstrapRole;
 
     public AdminBootstrap(UserService userService) {
         this.userService = userService;
@@ -30,8 +33,9 @@ public class AdminBootstrap implements CommandLineRunner {
             return;
         }
         if (userService.findByUsername(bootstrapUsername).isEmpty()) {
-            userService.register(bootstrapUsername, bootstrapPassword, UserRole.ADMIN);
-            log.info("Bootstrap admin user created: {}", bootstrapUsername);
+            UserRole role = UserRole.fromString(bootstrapRole);
+            userService.register(bootstrapUsername, bootstrapPassword, role);
+            log.info("Bootstrap {} user created: {}", role, bootstrapUsername);
         }
     }
 }

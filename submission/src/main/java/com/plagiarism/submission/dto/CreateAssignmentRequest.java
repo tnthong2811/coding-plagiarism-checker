@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 @Data
 public class CreateAssignmentRequest {
 
+    private Long classroomId;
+
     @NotBlank
     @Size(max = 180)
     private String title;

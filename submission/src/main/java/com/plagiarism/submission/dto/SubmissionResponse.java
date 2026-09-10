@@ -11,6 +11,9 @@ public class SubmissionResponse {
     private Long id;
     private Long assignmentId;
     private String assignmentTitle;
+    private Long classroomId;
+    private String classroomName;
+    private String classroomCode;
     private String submittedBy;
     private String originalFileName;
     private String objectKey;
@@ -28,6 +31,11 @@ public class SubmissionResponse {
         if (assignment != null) {
             response.setAssignmentId(assignment.getId());
             response.setAssignmentTitle(assignment.getTitle());
+            if (assignment.getClassroom() != null) {
+                response.setClassroomId(assignment.getClassroom().getId());
+                response.setClassroomName(assignment.getClassroom().getName());
+                response.setClassroomCode(assignment.getClassroom().getCode());
+            }
         }
         response.setSubmittedBy(submission.getSubmittedBy());
         response.setOriginalFileName(submission.getOriginalFileName());

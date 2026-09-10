@@ -5,10 +5,12 @@ import com.plagiarism.auth.model.UserRole;
 import com.plagiarism.auth.security.JwtUtil;
 import com.plagiarism.auth.service.UserService;
 import lombok.Data;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -39,8 +41,9 @@ public class AuthController {
         return userService.findByUsername(req.getUsername())
                 .filter(u -> userService.checkPassword(u, req.getPassword()))
                 .map(u -> {
-                    String token = jwtUtil.generateToken(u.getUsername(), u.getRole());
-                    return ResponseEntity.ok(Map.of("token", token, "role", u.getRole(), "username", u.getUsername()));
+                    String role = roleName(u);
+                    String token = jwtUtil.generateToken(u.getUsername(), role);
+                    return ResponseEntity.ok(Map.of("token", token, "role", role, "username", u.getUsername()));
                 })
                 .orElseGet(() -> ResponseEntity.status(401).body(Map.of("error", "invalid credentials")));
     }
@@ -51,51 +54,89 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         }
         return userService.findByUsername(authentication.getName())
-                .map(u -> ResponseEntity.ok(Map.of("id", u.getId(), "username", u.getUsername(), "role", u.getRole())))
+                .map(u -> ResponseEntity.ok(userResponse(u)))
                 .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "user not found")));
     }
 
     @PostMapping("/admin/users")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> createByAdmin(@RequestBody CreateUserRequest req) {
+    @PreAuthorize("hasAnyRole('BUSINESS_ADMIN','SYSTEM_ADMIN')")
+    public ResponseEntity<?> createByAdmin(@RequestBody CreateUserRequest req, Authentication authentication) {
         if (userService.findByUsername(req.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("error", "username exists"));
         }
         UserRole role = UserRole.fromString(req.getRole());
+        requireAssignableRole(authentication, role);
         User u = userService.register(req.getUsername(), req.getPassword(), role);
-        return ResponseEntity.ok(Map.of("id", u.getId(), "username", u.getUsername(), "role", u.getRole()));
+        return ResponseEntity.ok(userResponse(u));
     }
 
     @GetMapping("/admin/users")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('BUSINESS_ADMIN','SYSTEM_ADMIN')")
     public ResponseEntity<?> listUsers() {
         List<Map<String, Object>> users = userService.findAllUsers().stream()
-                .map(u -> Map.<String, Object>of(
-                        "id", u.getId(),
-                        "username", u.getUsername(),
-                        "role", u.getRole()
-                ))
+                .map(this::userResponse)
                 .toList();
         return ResponseEntity.ok(users);
     }
 
     @RequestMapping(value = "/admin/users/{id}/role", method = {RequestMethod.PUT, RequestMethod.POST})
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateUserRole(@PathVariable("id") Long id, @RequestBody UpdateUserRoleRequest req) {
+    @PreAuthorize("hasAnyRole('BUSINESS_ADMIN','SYSTEM_ADMIN')")
+    public ResponseEntity<?> updateUserRole(@PathVariable("id") Long id,
+                                            @RequestBody UpdateUserRoleRequest req,
+                                            Authentication authentication) {
         UserRole role = UserRole.fromString(req.getRole());
-        return userService.findById(id)
-                .map(u -> {
-                    User updated = userService.updateRole(id, role);
-                    return ResponseEntity.ok(Map.of("id", updated.getId(), "username", updated.getUsername(), "role", updated.getRole()));
-                })
-                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "user not found")));
+        User target = userService.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
+        requireManageableTarget(authentication, target);
+        requireAssignableRole(authentication, role);
+        User updated = userService.updateRole(id, role);
+        return ResponseEntity.ok(userResponse(updated));
     }
 
     @DeleteMapping("/admin/users/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('BUSINESS_ADMIN','SYSTEM_ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable("id") Long id, Authentication authentication) {
+        User target = userService.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
+        requireManageableTarget(authentication, target);
         User deleted = userService.deleteById(id, authentication.getName());
-        return ResponseEntity.ok(Map.of("id", deleted.getId(), "username", deleted.getUsername(), "role", deleted.getRole()));
+        return ResponseEntity.ok(userResponse(deleted));
+    }
+
+    private Map<String, Object> userResponse(User user) {
+        return Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "role", roleName(user)
+        );
+    }
+
+    private String roleName(User user) {
+        return UserRole.fromString(user.getRole()).name();
+    }
+
+    private void requireAssignableRole(Authentication authentication, UserRole role) {
+        UserRole currentRole = currentRole(authentication);
+        if (currentRole != UserRole.SYSTEM_ADMIN && role == UserRole.SYSTEM_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "only system admin can assign SYSTEM_ADMIN role");
+        }
+    }
+
+    private void requireManageableTarget(Authentication authentication, User target) {
+        UserRole currentRole = currentRole(authentication);
+        UserRole targetRole = UserRole.fromString(target.getRole());
+        if (currentRole != UserRole.SYSTEM_ADMIN && targetRole == UserRole.SYSTEM_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "only system admin can manage SYSTEM_ADMIN users");
+        }
+    }
+
+    private UserRole currentRole(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized");
+        }
+        return userService.findByUsername(authentication.getName())
+                .map(user -> UserRole.fromString(user.getRole()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized"));
     }
 
     @Data

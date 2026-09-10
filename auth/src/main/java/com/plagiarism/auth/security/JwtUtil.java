@@ -1,5 +1,6 @@
 package com.plagiarism.auth.security;
 
+import com.plagiarism.auth.model.UserRole;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +36,7 @@ public class JwtUtil {
                 .setExpiration(expiry)
                 .signWith(key, SignatureAlgorithm.HS256);
         if (role != null && !role.isBlank()) {
-            builder.claim("role", role);
+            builder.claim("role", UserRole.fromString(role).name());
         }
         return builder.compact();
     }

@@ -21,7 +21,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -31,7 +32,8 @@ button {
 
 button:disabled,
 input:disabled,
-select:disabled {
+select:disabled,
+textarea:disabled {
   cursor: not-allowed;
   opacity: 0.65;
 }
@@ -567,6 +569,10 @@ a {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.stat-grid--roles {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .stat-card,
 .panel,
 .profile-card {
@@ -712,7 +718,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 2.75rem;
   border: 1px solid #cbd5e1;
@@ -725,9 +732,15 @@ select {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   border-color: #0f766e;
   box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.14);
+}
+
+textarea {
+  min-height: 6.5rem;
+  resize: vertical;
 }
 
 input[type="file"] {
@@ -743,7 +756,7 @@ input[type="checkbox"] {
 
 .assignment-form {
   display: grid;
-  grid-template-columns: minmax(14rem, 1.4fr) minmax(8rem, 0.6fr) minmax(13rem, 0.8fr) auto;
+  grid-template-columns: minmax(12rem, 0.95fr) minmax(14rem, 1.2fr) minmax(8rem, 0.55fr) minmax(13rem, 0.8fr) auto;
   align-items: end;
   gap: 1rem;
 }
@@ -774,7 +787,7 @@ input[type="checkbox"] {
 
 .assignment-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, auto) minmax(12rem, auto);
   gap: 1rem;
   border: 1px solid #d9e2ec;
   border-radius: 8px;
@@ -801,6 +814,28 @@ input[type="checkbox"] {
   margin: 0.85rem 0;
   color: #64748b;
   font-weight: 700;
+}
+
+.classroom-join-form {
+  display: grid;
+  grid-template-columns: minmax(12rem, 22rem) auto;
+  align-items: end;
+  gap: 1rem;
+}
+
+.classroom-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 1rem;
+}
+
+.classroom-edit-form__wide {
+  grid-column: 1 / -1;
+}
+
+.classroom-edit-form > .button {
+  width: 100%;
 }
 
 .file-summary {
@@ -900,6 +935,16 @@ input[type="checkbox"] {
 .role-badge--admin {
   background: #ffedd5;
   color: #9a3412;
+}
+
+.role-badge--business_admin {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role-badge--system_admin {
+  background: #ede9fe;
+  color: #5b21b6;
 }
 
 .status-badge--success {
@@ -1328,6 +1373,7 @@ pre {
 
   .stat-grid,
   .stat-grid--four,
+  .stat-grid--roles,
   .action-grid,
   .role-path-grid,
   .workflow-band,
@@ -1355,6 +1401,11 @@ pre {
     grid-template-columns: 1fr;
   }
 
+  .classroom-join-form,
+  .classroom-edit-form {
+    grid-template-columns: 1fr;
+  }
+
   .source-grid {
     grid-template-columns: 1fr;
   }
@@ -1370,9 +1421,14 @@ pre {
   .page-header,
   .panel-header--split,
   .assignment-summary,
+  .classroom-join-form,
   .file-summary {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .assignment-summary {
+    grid-template-columns: 1fr;
   }
 
   .public-nav {

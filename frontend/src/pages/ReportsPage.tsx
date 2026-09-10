@@ -32,7 +32,10 @@ export function ReportsPage() {
 
   const assignmentTitleById = useMemo(() => {
     const lookup = new Map<number, string>();
-    assignments.forEach((assignment) => lookup.set(assignment.id, assignment.title));
+    assignments.forEach((assignment) => {
+      const label = assignment.classroomCode ? `${assignment.classroomCode} - ${assignment.title}` : assignment.title;
+      lookup.set(assignment.id, label);
+    });
     return lookup;
   }, [assignments]);
 
@@ -164,13 +167,13 @@ export function ReportsPage() {
     <div className="page-stack">
       <section className="page-header">
         <div>
-          <p className="eyebrow">{user?.role === "ADMIN" ? "Admin analytics" : "Teacher analytics"}</p>
+          <p className="eyebrow">{user?.role === "BUSINESS_ADMIN" ? "Business admin analytics" : "Teacher analytics"}</p>
           <h1>Reports</h1>
           <p>
             Signed in as <strong>{user?.username}</strong>. Review saved similarity runs and inspect matching code.
           </p>
         </div>
-        <span className={`role-badge ${user?.role === "ADMIN" ? "role-badge--admin" : "role-badge--teacher"}`}>
+        <span className={`role-badge ${user?.role === "BUSINESS_ADMIN" ? "role-badge--business_admin" : "role-badge--teacher"}`}>
           {user?.role}
         </span>
       </section>
@@ -225,7 +228,7 @@ export function ReportsPage() {
               <option value="">All assignments</option>
               {assignments.map((assignment) => (
                 <option key={assignment.id} value={assignment.id}>
-                  #{assignment.id} - {assignment.title}
+                  {assignment.classroomCode ? `${assignment.classroomCode} - ` : ""}#{assignment.id} - {assignment.title}
                 </option>
               ))}
             </select>

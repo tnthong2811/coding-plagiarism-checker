@@ -17,3 +17,4 @@ bootstrap:
   admin:
     username:
     password:
+    role: BUSINESS_ADMIN

@@ -1,7 +1,9 @@
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { ProtectedRoute, RoleRoute } from "./auth/Guards";
+import { REVIEW_ROLES, USER_ADMIN_ROLES } from "./auth/roles";
 import { Layout } from "./components/Layout";
+import { AdminClassroomManagementPage } from "./pages/AdminClassroomManagementPage";
 import { AdminCreateUserPage } from "./pages/AdminCreateUserPage";
 import { AdminUserManagementPage } from "./pages/AdminUserManagementPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -31,15 +33,19 @@ export default function App() {
               <Route path="/submissions/upload" element={<SubmissionUploadPage />} />
             </Route>
 
-            <Route element={<RoleRoute allowed={["TEACHER", "ADMIN"]} />}>
+            <Route element={<RoleRoute allowed={REVIEW_ROLES} />}>
               <Route path="/teacher/submissions/history" element={<TeacherSubmissionHistoryPage />} />
               <Route path="/teacher/reports" element={<ReportsPage />} />
             </Route>
 
-            <Route element={<RoleRoute allowed={["ADMIN"]} />}>
+            <Route element={<RoleRoute allowed={USER_ADMIN_ROLES} />}>
               <Route path="/admin" element={<AdminUserManagementPage />} />
               <Route path="/admin/users/manage" element={<AdminUserManagementPage />} />
               <Route path="/admin/users" element={<AdminCreateUserPage />} />
+            </Route>
+
+            <Route element={<RoleRoute allowed={["BUSINESS_ADMIN"]} />}>
+              <Route path="/admin/classes" element={<AdminClassroomManagementPage />} />
             </Route>
           </Route>
         </Route>

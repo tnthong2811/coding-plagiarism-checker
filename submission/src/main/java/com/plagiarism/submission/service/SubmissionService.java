@@ -17,7 +17,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -48,6 +50,13 @@ public class SubmissionService {
 
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found"));
+        if (!ClassroomService.canReadAssignment(submittedBy, "STUDENT", assignment)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not enrolled in this assignment classroom");
+        }
+        if (assignment.getDueAt() != null && LocalDateTime.now().isAfter(assignment.getDueAt())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignment deadline has passed");
+        }
+
         String originalName = file.getOriginalFilename() == null ? "submission.zip" : file.getOriginalFilename();
         String objectKey = "assignments/" + assignment.getId() + "/" + submittedBy + "/" + UUID.randomUUID() + "-" + originalName;
         String contentType = file.getContentType() == null ? "application/octet-stream" : file.getContentType();
@@ -70,7 +79,11 @@ public class SubmissionService {
             throw new RuntimeException("Unexpected upload failure", e);
         }
 
-        Submission submission = new Submission();
+        Optional<Submission> existing = submissionRepository.findFirstByAssignment_IdAndSubmittedByOrderByCreatedAtDesc(
+                assignmentId,
+                submittedBy
+        );
+        Submission submission = existing.orElseGet(Submission::new);
         submission.setAssignment(assignment);
         submission.setSubmittedBy(submittedBy);
         submission.setOriginalFileName(originalName);
@@ -90,12 +103,20 @@ public class SubmissionService {
         return submissionRepository.findByAssignment_IdAndSubmittedByOrderByCreatedAtDesc(assignmentId, username);
     }
 
-    public List<Submission> getSubmissionsForAssignment(Long assignmentId) {
+    public List<Submission> getSubmissionsForAssignment(Long assignmentId, String username, String role) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found"));
+        if (!ClassroomService.canManageAssignment(username, role, assignment)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Assignment is outside your management scope");
+        }
         return submissionRepository.findByAssignment_IdOrderByCreatedAtDesc(assignmentId);
     }
 
-    public List<Submission> getSubmissionHistory() {
-        return submissionRepository.findAllByOrderByCreatedAtDesc();
+    public List<Submission> getSubmissionHistory(String username, String role) {
+        return submissionRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(submission -> submission.getAssignment() != null
+                        && ClassroomService.canManageAssignment(username, role, submission.getAssignment()))
+                .toList();
     }
 
     private void ensureBucketExists() throws Exception {

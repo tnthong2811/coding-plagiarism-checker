@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { canAccessReview, canAccessUserAdmin } from "../auth/roles";
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -9,17 +10,20 @@ export function Layout() {
     ...(user?.role === "STUDENT"
       ? [{ to: "/submissions/upload", label: "Submit Assignment", short: "UP", end: false }]
       : []),
-    ...(user?.role === "TEACHER" || user?.role === "ADMIN"
+    ...(canAccessReview(user?.role)
       ? [
           { to: "/teacher/submissions/history", label: "Assignments", short: "AS", end: false },
           { to: "/teacher/reports", label: "Reports", short: "RP", end: false }
         ]
       : []),
-    ...(user?.role === "ADMIN"
+    ...(canAccessUserAdmin(user?.role)
       ? [
           { to: "/admin", label: "User Management", short: "UM", end: true },
           { to: "/admin/users", label: "Create User", short: "CU", end: false }
         ]
+      : []),
+    ...(user?.role === "BUSINESS_ADMIN"
+      ? [{ to: "/admin/classes", label: "Classrooms", short: "CL", end: false }]
       : [])
   ];
 

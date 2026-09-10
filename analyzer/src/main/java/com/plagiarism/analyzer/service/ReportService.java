@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class ReportService {
@@ -30,26 +31,68 @@ public class ReportService {
         return response;
     }
 
-    public List<ReportSummaryResponse> listReports(Long assignmentId) {
+    public List<ReportSummaryResponse> listReports(Long assignmentId, String username, String role) {
         List<AnalysisReport> reports = assignmentId == null
                 ? reportRepository.findAllByOrderByGeneratedAtDesc()
                 : reportRepository.findByAssignmentIdOrderByGeneratedAtDesc(assignmentId);
 
         return reports.stream()
+                .filter(report -> canAccessReport(report, username, role))
                 .map(ReportSummaryResponse::from)
                 .toList();
     }
 
-    public CompareResponse getReport(String id) {
-        return reportRepository.findById(id)
-                .map(AnalysisReport::toCompareResponse)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
-    }
-
-    public ReportSummaryResponse deleteReport(String id) {
+    public CompareResponse getReport(String id, String username, String role) {
         AnalysisReport report = reportRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
+        requireAccess(report, username, role);
+        return report.toCompareResponse();
+    }
+
+    public ReportSummaryResponse deleteReport(String id, String username, String role) {
+        AnalysisReport report = reportRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
+        requireAccess(report, username, role);
         reportRepository.delete(report);
         return ReportSummaryResponse.from(report);
+    }
+
+    private void requireAccess(AnalysisReport report, String username, String role) {
+        if (!canAccessReport(report, username, role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Report is outside your scope");
+        }
+    }
+
+    private boolean canAccessReport(AnalysisReport report, String username, String role) {
+        String normalizedRole = normalizeRole(role);
+        if ("BUSINESS_ADMIN".equals(normalizedRole) || "SYSTEM_ADMIN".equals(normalizedRole)) {
+            return true;
+        }
+        return "TEACHER".equals(normalizedRole)
+                && normalizeUsername(username).equals(normalizeUsername(report.getRequestedBy()));
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null || role.isBlank()) {
+            return "STUDENT";
+        }
+        String normalized = role.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        if ("ADMIN".equals(normalized)) {
+            return "BUSINESS_ADMIN";
+        }
+        if ("USER".equals(normalized)) {
+            return "STUDENT";
+        }
+        if ("TEACHING_ASSISTANT".equals(normalized) || "TA".equals(normalized)) {
+            return "TEACHER";
+        }
+        return normalized;
+    }
+
+    private String normalizeUsername(String username) {
+        return username == null ? "" : username.trim();
     }
 }

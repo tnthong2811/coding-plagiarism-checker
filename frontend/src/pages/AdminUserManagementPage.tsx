@@ -1,14 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createUserByAdmin, deleteUserByAdmin, listUsersByAdmin, updateUserRoleByAdmin } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
+import { BUSINESS_MANAGED_ROLES, USER_ROLES, canManageSystemAdmin, roleBadgeClass } from "../auth/roles";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import type { AdminUser, UserRole } from "../types/auth";
-
-const ROLE_OPTIONS: UserRole[] = ["STUDENT", "TEACHER", "ADMIN"];
-
-function roleBadgeClass(role: UserRole) {
-  return `role-badge role-badge--${role.toLowerCase()}`;
-}
 
 export function AdminUserManagementPage() {
   const { token, user } = useAuth();
@@ -26,9 +21,14 @@ export function AdminUserManagementPage() {
   const [deletingUsers, setDeletingUsers] = useState(false);
 
   const sortedUsers = useMemo(() => [...users].sort((a, b) => a.id - b.id), [users]);
+  const roleOptions = useMemo(
+    () => (canManageSystemAdmin(user?.role) ? USER_ROLES : BUSINESS_MANAGED_ROLES),
+    [user?.role]
+  );
+  const canManageUser = (target: AdminUser) => canManageSystemAdmin(user?.role) || target.role !== "SYSTEM_ADMIN";
   const selectableUsers = useMemo(
-    () => sortedUsers.filter((item) => item.id !== user?.id),
-    [sortedUsers, user?.id]
+    () => sortedUsers.filter((item) => item.id !== user?.id && canManageUser(item)),
+    [sortedUsers, user?.id, user?.role]
   );
   const allSelectableUsersSelected = selectableUsers.length > 0
     && selectableUsers.every((item) => selectedUserIds.includes(item.id));
@@ -36,7 +36,8 @@ export function AdminUserManagementPage() {
     () => ({
       STUDENT: users.filter((item) => item.role === "STUDENT").length,
       TEACHER: users.filter((item) => item.role === "TEACHER").length,
-      ADMIN: users.filter((item) => item.role === "ADMIN").length
+      BUSINESS_ADMIN: users.filter((item) => item.role === "BUSINESS_ADMIN").length,
+      SYSTEM_ADMIN: users.filter((item) => item.role === "SYSTEM_ADMIN").length
     }),
     [users]
   );
@@ -144,10 +145,10 @@ export function AdminUserManagementPage() {
           <h1>User Management</h1>
           <p>Signed in as <strong>{user?.username}</strong>. Create accounts and update role assignments.</p>
         </div>
-        <span className="role-badge role-badge--admin">ADMIN</span>
+        {user?.role && <span className={roleBadgeClass(user.role)}>{user.role}</span>}
       </section>
 
-      <section className="stat-grid stat-grid--four">
+      <section className="stat-grid stat-grid--roles">
         <article className="stat-card">
           <span>Total users</span>
           <strong>{users.length}</strong>
@@ -164,9 +165,14 @@ export function AdminUserManagementPage() {
           <small>Review access</small>
         </article>
         <article className="stat-card stat-card--accent">
-          <span>Admins</span>
-          <strong>{roleCounts.ADMIN}</strong>
-          <small>Full management access</small>
+          <span>Business admins</span>
+          <strong>{roleCounts.BUSINESS_ADMIN}</strong>
+          <small>Academic operations</small>
+        </article>
+        <article className="stat-card">
+          <span>System admins</span>
+          <strong>{roleCounts.SYSTEM_ADMIN}</strong>
+          <small>Technical administration</small>
         </article>
       </section>
 
@@ -196,7 +202,7 @@ export function AdminUserManagementPage() {
             <label>
               Role
               <select value={createRole} onChange={(e) => setCreateRole(e.target.value as UserRole)}>
-                {ROLE_OPTIONS.map((role) => (
+                {roleOptions.map((role) => (
                   <option key={role} value={role}>{role}</option>
                 ))}
               </select>
@@ -258,7 +264,7 @@ export function AdminUserManagementPage() {
                       <input
                         type="checkbox"
                         checked={selectedUserIds.includes(u.id)}
-                        disabled={u.id === user?.id}
+                        disabled={u.id === user?.id || !canManageUser(u)}
                         onChange={() => toggleUserSelection(u.id)}
                         aria-label={`Select ${u.username}`}
                       />
@@ -272,10 +278,10 @@ export function AdminUserManagementPage() {
                     <td>
                       <select
                         value={u.role}
-                        disabled={updatingUserId === u.id}
+                        disabled={updatingUserId === u.id || !canManageUser(u)}
                         onChange={(e) => handleRoleChange(u, e.target.value as UserRole)}
                       >
-                        {ROLE_OPTIONS.map((role) => (
+                        {(canManageUser(u) ? roleOptions : [u.role]).map((role) => (
                           <option key={role} value={role}>{role}</option>
                         ))}
                       </select>

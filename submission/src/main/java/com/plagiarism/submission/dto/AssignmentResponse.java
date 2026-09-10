@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 @Data
 public class AssignmentResponse {
     private Long id;
+    private Long classroomId;
+    private String classroomName;
+    private String classroomCode;
     private String title;
     private String description;
     private String language;
@@ -19,6 +22,11 @@ public class AssignmentResponse {
     public static AssignmentResponse from(Assignment assignment) {
         AssignmentResponse response = new AssignmentResponse();
         response.setId(assignment.getId());
+        if (assignment.getClassroom() != null) {
+            response.setClassroomId(assignment.getClassroom().getId());
+            response.setClassroomName(assignment.getClassroom().getName());
+            response.setClassroomCode(assignment.getClassroom().getCode());
+        }
         response.setTitle(assignment.getTitle());
         response.setDescription(assignment.getDescription());
         response.setLanguage(assignment.getLanguage());

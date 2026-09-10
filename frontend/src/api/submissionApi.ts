@@ -1,5 +1,7 @@
 import type {
   AssignmentResponse,
+  ClassroomResponse,
+  CreateClassroomRequest,
   CreateAssignmentRequest,
   SubmissionResponse
 } from "../types/submission";
@@ -36,12 +38,97 @@ export async function getAssignments(token: string): Promise<AssignmentResponse[
   return readResponse<AssignmentResponse[]>(response);
 }
 
+export async function getClassrooms(token: string): Promise<ClassroomResponse[]> {
+  const response = await fetch(`${SUBMISSION_BASE}/api/classes`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return readResponse<ClassroomResponse[]>(response);
+}
+
+export async function createClassroom(
+  token: string,
+  payload: CreateClassroomRequest
+): Promise<ClassroomResponse> {
+  const response = await fetch(`${SUBMISSION_BASE}/api/classes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return readResponse<ClassroomResponse>(response);
+}
+
+export async function updateClassroom(
+  token: string,
+  classroomId: number,
+  payload: CreateClassroomRequest
+): Promise<ClassroomResponse> {
+  const response = await fetch(`${SUBMISSION_BASE}/api/classes/${classroomId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return readResponse<ClassroomResponse>(response);
+}
+
+export async function deleteClassroom(token: string, classroomId: number): Promise<ClassroomResponse> {
+  const response = await fetch(`${SUBMISSION_BASE}/api/classes/${classroomId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return readResponse<ClassroomResponse>(response);
+}
+
+export async function joinClassroom(token: string, code: string): Promise<ClassroomResponse> {
+  const response = await fetch(`${SUBMISSION_BASE}/api/classes/join`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ code })
+  });
+
+  return readResponse<ClassroomResponse>(response);
+}
+
 export async function createAssignment(
   token: string,
   payload: CreateAssignmentRequest
 ): Promise<AssignmentResponse> {
   const response = await fetch(`${SUBMISSION_BASE}/api/assignments`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return readResponse<AssignmentResponse>(response);
+}
+
+export async function updateAssignment(
+  token: string,
+  assignmentId: number,
+  payload: CreateAssignmentRequest
+): Promise<AssignmentResponse> {
+  const response = await fetch(`${SUBMISSION_BASE}/api/assignments/${assignmentId}`, {
+    method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`

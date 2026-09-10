@@ -18,10 +18,17 @@ const roleDetails: Record<UserRole, { eyebrow: string; title: string; body: stri
     action: "Open assignments",
     to: "/teacher/submissions/history"
   },
-  ADMIN: {
-    eyebrow: "Administration access",
-    title: "Admin account",
-    body: "You can manage user accounts and keep access aligned with classroom responsibilities.",
+  BUSINESS_ADMIN: {
+    eyebrow: "Business administration",
+    title: "Business admin account",
+    body: "You can manage classroom users and keep access aligned with teaching responsibilities.",
+    action: "Manage users",
+    to: "/admin"
+  },
+  SYSTEM_ADMIN: {
+    eyebrow: "System administration",
+    title: "System admin account",
+    body: "You can manage elevated account access while staying separate from day-to-day review workflows.",
     action: "Manage users",
     to: "/admin"
   }

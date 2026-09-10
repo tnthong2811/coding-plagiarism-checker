@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { canAccessReview, canAccessUserAdmin } from "../auth/roles";
 import heroImage from "../assets/hero-analysis-workspace.png";
 
 export function LoginPage() {
@@ -19,9 +20,9 @@ export function LoginPage() {
     try {
       const profile = await login({ username, password });
       const target =
-        profile.role === "ADMIN"
+        canAccessUserAdmin(profile.role)
           ? "/admin"
-          : profile.role === "TEACHER"
+          : canAccessReview(profile.role)
             ? "/teacher/submissions/history"
             : profile.role === "STUDENT"
             ? "/submissions/upload"

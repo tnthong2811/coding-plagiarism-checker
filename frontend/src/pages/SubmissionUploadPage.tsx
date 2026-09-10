@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { getAssignments, getMySubmissions, uploadSubmission } from "../api/submissionApi";
+import { getAssignments, getClassrooms, getMySubmissions, joinClassroom, uploadSubmission } from "../api/submissionApi";
 import { useAuth } from "../auth/AuthContext";
-import type { AssignmentResponse, SubmissionResponse } from "../types/submission";
+import type { AssignmentResponse, ClassroomResponse, SubmissionResponse } from "../types/submission";
 
 function formatDate(value?: string | null) {
   return value ? new Date(value).toLocaleString() : "No due date";
@@ -33,10 +33,13 @@ function statusClass(status: string) {
 
 export function SubmissionUploadPage() {
   const { token, user } = useAuth();
+  const [classrooms, setClassrooms] = useState<ClassroomResponse[]>([]);
   const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | "">("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mySubmissions, setMySubmissions] = useState<SubmissionResponse[]>([]);
@@ -46,10 +49,12 @@ export function SubmissionUploadPage() {
       return;
     }
     try {
-      const [assignmentRows, submissionRows] = await Promise.all([
+      const [classroomRows, assignmentRows, submissionRows] = await Promise.all([
+        getClassrooms(token),
         getAssignments(token),
         getMySubmissions(token)
       ]);
+      setClassrooms(classroomRows);
       setAssignments(assignmentRows);
       setSelectedAssignmentId((current) => {
         if (current && assignmentRows.some((assignment) => assignment.id === current)) {
@@ -60,6 +65,7 @@ export function SubmissionUploadPage() {
       setMySubmissions(submissionRows);
     } catch {
       // Keep UI usable if the list API fails while upload still works.
+      setClassrooms([]);
       setAssignments([]);
       setMySubmissions([]);
     }
@@ -78,6 +84,33 @@ export function SubmissionUploadPage() {
     const assignmentIds = new Set(mySubmissions.map((item) => item.assignmentId).filter(Boolean));
     return assignmentIds.size;
   }, [mySubmissions]);
+
+  async function handleJoinClassroom(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(null);
+    setError(null);
+
+    if (!token) {
+      setError("Missing token. Please login again.");
+      return;
+    }
+    if (!joinCode.trim()) {
+      setError("Class code is required.");
+      return;
+    }
+
+    setJoining(true);
+    try {
+      const joined = await joinClassroom(token, joinCode.trim());
+      setJoinCode("");
+      setMessage(`Joined class ${joined.code}`);
+      await loadMySubmissions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to join classroom");
+    } finally {
+      setJoining(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,11 +156,16 @@ export function SubmissionUploadPage() {
         <span className="role-badge role-badge--student">STUDENT</span>
       </section>
 
-      <section className="stat-grid">
+      <section className="stat-grid stat-grid--four">
         <article className="stat-card">
           <span>Available assignments</span>
           <strong>{assignments.length}</strong>
-          <small>Loaded from submission service</small>
+          <small>In joined classes</small>
+        </article>
+        <article className="stat-card">
+          <span>Classes</span>
+          <strong>{classrooms.length}</strong>
+          <small>Joined with class code</small>
         </article>
         <article className="stat-card">
           <span>Total submissions</span>
@@ -139,6 +177,27 @@ export function SubmissionUploadPage() {
           <strong>{selectedAssignment?.language ?? "-"}</strong>
           <small>{selectedAssignment ? formatDate(selectedAssignment.dueAt) : "Choose an assignment"}</small>
         </article>
+      </section>
+
+      {message && <p className="alert alert-success">{message}</p>}
+      {error && <p className="alert alert-error">{error}</p>}
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Class access</p>
+            <h2>Join classroom</h2>
+          </div>
+        </div>
+        <form className="classroom-join-form" onSubmit={handleJoinClassroom}>
+          <label>
+            Class code
+            <input value={joinCode} onChange={(event) => setJoinCode(event.target.value)} maxLength={32} />
+          </label>
+          <button className="button button-primary" type="submit" disabled={joining}>
+            {joining ? "Joining..." : "Join class"}
+          </button>
+        </form>
       </section>
 
       <div className="two-column-grid">
@@ -163,7 +222,7 @@ export function SubmissionUploadPage() {
                 ) : (
                   assignments.map((assignment) => (
                     <option key={assignment.id} value={assignment.id}>
-                      #{assignment.id} - {assignment.title} ({assignment.language})
+                      {assignment.classroomCode ? `${assignment.classroomCode} - ` : ""}#{assignment.id} - {assignment.title} ({assignment.language})
                     </option>
                   ))
                 )}
@@ -188,9 +247,6 @@ export function SubmissionUploadPage() {
               </div>
             )}
 
-            {message && <p className="alert alert-success">{message}</p>}
-            {error && <p className="alert alert-error">{error}</p>}
-
             <button className="button button-primary" type="submit" disabled={submitting || assignments.length === 0}>
               {submitting ? "Uploading..." : "Upload submission"}
             </button>
@@ -206,6 +262,10 @@ export function SubmissionUploadPage() {
           </div>
           {selectedAssignment ? (
             <dl className="detail-list">
+              <div>
+                <dt>Class</dt>
+                <dd>{selectedAssignment.classroomCode ? `${selectedAssignment.classroomCode} - ${selectedAssignment.classroomName}` : "Unassigned"}</dd>
+              </div>
               <div>
                 <dt>ID</dt>
                 <dd>#{selectedAssignment.id}</dd>
@@ -244,6 +304,7 @@ export function SubmissionUploadPage() {
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Class</th>
                   <th>Assignment</th>
                   <th>File</th>
                   <th>Status</th>
@@ -254,6 +315,7 @@ export function SubmissionUploadPage() {
                 {mySubmissions.map((item) => (
                   <tr key={item.id}>
                     <td>#{item.id}</td>
+                    <td>{item.classroomCode ?? "Unassigned"}</td>
                     <td>{item.assignmentTitle ?? (item.assignmentId ? `#${item.assignmentId}` : "Legacy")}</td>
                     <td>{item.originalFileName}</td>
                     <td>

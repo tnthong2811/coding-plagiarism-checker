@@ -8,8 +8,9 @@ This frontend implements phase-1 auth use cases for `coding-plagiarism-checker`.
 - Register (`/register`) - creates `STUDENT`
 - Dashboard (`/dashboard`) - shows current role and auth health
 - My Profile (`/me`) - calls `GET /api/auth/me`
-- Student Upload (`/submissions/upload`) - uploads file to submission-service/MinIO
-- Admin Create User (`/admin/users`) - only `ADMIN`
+- Student Upload (`/submissions/upload`) - joins classrooms and uploads file to submission-service/MinIO
+- Admin Create User (`/admin/users`) - `BUSINESS_ADMIN` and `SYSTEM_ADMIN`
+- Admin Classrooms (`/admin/classes`) - only `BUSINESS_ADMIN`
 
 ## Tech stack
 
@@ -52,6 +53,7 @@ npm run preview
 1. Register a new user from `/register`.
 2. Login from `/login`.
 3. Open `/me` to verify JWT works.
-4. Login as student and open `/submissions/upload` to upload source files.
-5. Login as admin and open `/admin/users` to create `TEACHER` or `ADMIN`.
+4. Login as `BUSINESS_ADMIN` and open `/admin/classes` to create a classroom.
+5. Assign a teacher username to the classroom, then create an assignment from `/teacher/submissions/history`.
+6. Login as student, join by class code, and upload source files from `/submissions/upload`.
 

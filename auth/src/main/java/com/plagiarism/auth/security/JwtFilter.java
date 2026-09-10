@@ -1,5 +1,7 @@
 package com.plagiarism.auth.security;
 
+import com.plagiarism.auth.model.UserRole;
+import com.plagiarism.auth.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,9 +23,11 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
-    public JwtFilter(JwtUtil jwtUtil) {
+    public JwtFilter(JwtUtil jwtUtil, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -36,7 +40,8 @@ public class JwtFilter extends OncePerRequestFilter {
             String subject = claims == null ? null : claims.getSubject();
             String role = claims == null ? null : claims.get("role", String.class);
             if (subject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + (role == null ? "STUDENT" : role)));
+                List<SimpleGrantedAuthority> authorities =
+                        List.of(new SimpleGrantedAuthority("ROLE_" + resolveRole(subject, role)));
                 UserDetails ud = User.withUsername(subject).password("").authorities(authorities).build();
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -44,6 +49,20 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private String resolveRole(String username, String tokenRole) {
+        return userRepository.findByUsername(username)
+                .map(user -> normalizeRole(user.getRole()))
+                .orElseGet(() -> normalizeRole(tokenRole));
+    }
+
+    private String normalizeRole(String role) {
+        try {
+            return UserRole.fromString(role).name();
+        } catch (IllegalArgumentException ex) {
+            return "STUDENT";
+        }
     }
 }
 

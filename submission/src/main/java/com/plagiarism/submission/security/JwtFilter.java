@@ -37,7 +37,7 @@ public class JwtFilter extends OncePerRequestFilter {
             String role = claims == null ? null : claims.get("role", String.class);
 
             if (subject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                String authority = "ROLE_" + (role == null || role.isBlank() ? "STUDENT" : role);
+                String authority = "ROLE_" + normalizeRole(role);
                 List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(authority));
                 UserDetails userDetails = User.withUsername(subject).password("").authorities(authorities).build();
                 UsernamePasswordAuthenticationToken authToken =
@@ -48,6 +48,26 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null || role.isBlank()) {
+            return "STUDENT";
+        }
+        String normalized = role.trim().toUpperCase();
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        if ("USER".equals(normalized)) {
+            return "STUDENT";
+        }
+        if ("TEACHING_ASSISTANT".equals(normalized) || "TA".equals(normalized)) {
+            return "TEACHER";
+        }
+        if ("ADMIN".equals(normalized)) {
+            return "BUSINESS_ADMIN";
+        }
+        return normalized;
     }
 }
 

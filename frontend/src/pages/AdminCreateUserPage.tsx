@@ -1,16 +1,28 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { createUserByAdmin } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
+import { BUSINESS_MANAGED_ROLES, USER_ROLES, canManageSystemAdmin, roleBadgeClass } from "../auth/roles";
 import type { UserRole } from "../types/auth";
 
+const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
+  STUDENT: "Can submit assignment source files.",
+  TEACHER: "Can create assignments, compare submissions, and open reports.",
+  BUSINESS_ADMIN: "Can manage classroom users and access review workflows.",
+  SYSTEM_ADMIN: "Can manage elevated administrator accounts and technical access."
+};
+
 export function AdminCreateUserPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("STUDENT");
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const roleOptions = useMemo(
+    () => (canManageSystemAdmin(user?.role) ? USER_ROLES : BUSINESS_MANAGED_ROLES),
+    [user?.role]
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,9 +54,9 @@ export function AdminCreateUserPage() {
         <div>
           <p className="eyebrow">Administration</p>
           <h1>Create User</h1>
-          <p>Create a student, teacher, or admin account with the selected role.</p>
+          <p>Create an account with the roles available to your admin scope.</p>
         </div>
-        <span className="role-badge role-badge--admin">ADMIN</span>
+        {user?.role && <span className={roleBadgeClass(user.role)}>{user.role}</span>}
       </section>
 
       <div className="two-column-grid">
@@ -75,9 +87,9 @@ export function AdminCreateUserPage() {
             <label>
               Role
               <select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
-                <option value="STUDENT">STUDENT</option>
-                <option value="TEACHER">TEACHER</option>
-                <option value="ADMIN">ADMIN</option>
+                {roleOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
               </select>
             </label>
 
@@ -97,18 +109,12 @@ export function AdminCreateUserPage() {
             </div>
           </div>
           <dl className="detail-list">
-            <div>
-              <dt>STUDENT</dt>
-              <dd>Can submit assignment source files.</dd>
-            </div>
-            <div>
-              <dt>TEACHER</dt>
-              <dd>Can create assignments, compare submissions, and open reports.</dd>
-            </div>
-            <div>
-              <dt>ADMIN</dt>
-              <dd>Can manage users and access review workflows.</dd>
-            </div>
+            {roleOptions.map((option) => (
+              <div key={option}>
+                <dt>{option}</dt>
+                <dd>{ROLE_DESCRIPTIONS[option]}</dd>
+              </div>
+            ))}
           </dl>
         </section>
       </div>

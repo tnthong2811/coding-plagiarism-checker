@@ -3,6 +3,9 @@ package com.plagiarism.submission.model;
 import com.plagiarism.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,6 +17,10 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class Assignment extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "classroom_id")
+    private Classroom classroom;
 
     @Column(nullable = false, length = 180)
     private String title;

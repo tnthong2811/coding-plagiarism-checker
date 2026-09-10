@@ -1,5 +1,8 @@
 export interface AssignmentResponse {
   id: number;
+  classroomId?: number | null;
+  classroomName?: string | null;
+  classroomCode?: string | null;
   title: string;
   description?: string | null;
   language: AnalysisLanguage;
@@ -10,6 +13,7 @@ export interface AssignmentResponse {
 }
 
 export interface CreateAssignmentRequest {
+  classroomId: number;
   title: string;
   description?: string | null;
   language?: AnalysisLanguage;
@@ -20,6 +24,9 @@ export interface SubmissionResponse {
   id: number;
   assignmentId?: number | null;
   assignmentTitle?: string | null;
+  classroomId?: number | null;
+  classroomName?: string | null;
+  classroomCode?: string | null;
   submittedBy: string;
   originalFileName: string;
   objectKey: string;
@@ -31,6 +38,27 @@ export interface SubmissionResponse {
 }
 
 export type AnalysisLanguage = "AUTO" | "JAVA" | "CPP";
+
+export interface ClassroomResponse {
+  id: number;
+  name: string;
+  code: string;
+  description?: string | null;
+  createdBy: string;
+  teacherUsernames: string[];
+  studentUsernames: string[];
+  assignmentCount: number;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateClassroomRequest {
+  name: string;
+  code: string;
+  description?: string | null;
+  teacherUsernames: string[];
+  studentUsernames: string[];
+}
 
 export interface ComparisonSubmissionInput {
   submissionId: number;

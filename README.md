@@ -182,6 +182,16 @@ POST   /api/auth/admin/users   - Admin tạo user theo role
 
 ### Submission Service (8082)
 ```
+GET    /api/classes                  - List classrooms in current user scope
+POST   /api/classes                  - Business Admin creates classroom
+PUT    /api/classes/{id}             - Business Admin updates classroom + members
+DELETE /api/classes/{id}             - Business Admin deletes classroom with assignments/submissions
+POST   /api/classes/join             - Student joins classroom by class code
+GET    /api/assignments              - List assignments in current user scope
+POST   /api/assignments              - Teacher/Business Admin creates assignment in classroom
+PUT    /api/assignments/{id}         - Teacher/Business Admin updates managed assignment
+DELETE /api/assignments/{id}         - Teacher/Business Admin deletes managed assignment
+GET    /api/assignments/{id}/submissions - Teacher/Business Admin lists scoped submissions
 POST   /api/submissions/upload       - Nộp bài
 GET    /api/submissions/mine         - Danh sách bài nộp của user hiện tại
 ```

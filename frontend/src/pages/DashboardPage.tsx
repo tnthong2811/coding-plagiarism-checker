@@ -13,10 +13,15 @@ const roleCopy: Record<UserRole, { title: string; summary: string; focus: string
     summary: "Create assignments, review submissions, and run JPlag comparisons.",
     focus: "Next step: select an assignment and compare at least two submissions."
   },
-  ADMIN: {
-    title: "Admin workspace",
-    summary: "Manage users while keeping teacher review workflows close at hand.",
+  BUSINESS_ADMIN: {
+    title: "Business admin workspace",
+    summary: "Manage classroom users and oversee assignment review workflows.",
     focus: "Next step: review account roles or create a new user."
+  },
+  SYSTEM_ADMIN: {
+    title: "System admin workspace",
+    summary: "Manage elevated account access without entering classroom review flows.",
+    focus: "Next step: review administrator roles or create a technical admin user."
   }
 };
 
@@ -26,9 +31,14 @@ const roleActions: Record<UserRole, Array<{ label: string; to: string }>> = {
     { label: "Open assignments", to: "/teacher/submissions/history" },
     { label: "View reports", to: "/teacher/reports" }
   ],
-  ADMIN: [
+  BUSINESS_ADMIN: [
     { label: "Manage users", to: "/admin" },
+    { label: "Manage classes", to: "/admin/classes" },
+    { label: "Open assignments", to: "/teacher/submissions/history" },
     { label: "Open reports", to: "/teacher/reports" }
+  ],
+  SYSTEM_ADMIN: [
+    { label: "Manage users", to: "/admin" }
   ]
 };
 
