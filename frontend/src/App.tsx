@@ -13,6 +13,7 @@ import { MePage } from "./pages/MePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SubmissionUploadPage } from "./pages/SubmissionUploadPage";
 import { TeacherSubmissionHistoryPage } from "./pages/TeacherSubmissionHistoryPage";
 
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>

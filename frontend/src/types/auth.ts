@@ -3,7 +3,9 @@ export type UserRole = "STUDENT" | "TEACHER" | "BUSINESS_ADMIN" | "SYSTEM_ADMIN"
 export interface UserProfile {
   id: number;
   username: string;
+  email?: string | null;
   role: UserRole;
+  passwordResetRequired?: boolean;
 }
 
 export interface LoginRequest {
@@ -14,6 +16,24 @@ export interface LoginRequest {
 export interface RegisterRequest {
   username: string;
   password: string;
+}
+
+export interface GoogleRegisterRequest {
+  email: string;
+}
+
+export interface GoogleRegisterResponse extends UserProfile {
+  message: string;
+  passwordResetRequired: boolean;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+}
+
+export interface ResetPasswordResponse extends UserProfile {
+  message: string;
 }
 
 export interface LoginResponse {
@@ -31,7 +51,9 @@ export interface CreateUserRequest {
 export interface AdminUser {
   id: number;
   username: string;
+  email?: string | null;
   role: UserRole;
+  passwordResetRequired?: boolean;
 }
 
 export interface UpdateUserRoleRequest {

@@ -2,9 +2,13 @@ import { deleteJson, getJson, postJson } from "./client";
 import type {
   AdminUser,
   CreateUserRequest,
+  GoogleRegisterRequest,
+  GoogleRegisterResponse,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
   UpdateUserRoleRequest,
   UserProfile
 } from "../types/auth";
@@ -15,6 +19,14 @@ export function health() {
 
 export function register(payload: RegisterRequest) {
   return postJson<UserProfile, RegisterRequest>("/api/auth/register", payload);
+}
+
+export function registerGoogleEmail(payload: GoogleRegisterRequest) {
+  return postJson<GoogleRegisterResponse, GoogleRegisterRequest>("/api/auth/register/google", payload);
+}
+
+export function resetPassword(payload: ResetPasswordRequest) {
+  return postJson<ResetPasswordResponse, ResetPasswordRequest>("/api/auth/password/reset", payload);
 }
 
 export function login(payload: LoginRequest) {

@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { registerGoogleEmail } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import heroImage from "../assets/hero-analysis-workspace.png";
 
@@ -8,13 +9,17 @@ export function RegisterPage() {
   const { register } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [googleEmail, setGoogleEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [googleMessage, setGoogleMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    setGoogleMessage(null);
     setError(null);
     setSubmitting(true);
 
@@ -26,6 +31,24 @@ export function RegisterPage() {
       setError(err instanceof Error ? err.message : "Register failed");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleGoogleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(null);
+    setGoogleMessage(null);
+    setError(null);
+    setGoogleSubmitting(true);
+
+    try {
+      const response = await registerGoogleEmail({ email: googleEmail });
+      setGoogleMessage(response.message);
+      setGoogleEmail("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google email registration failed");
+    } finally {
+      setGoogleSubmitting(false);
     }
   }
 
@@ -42,7 +65,7 @@ export function RegisterPage() {
         <div>
           <p className="eyebrow">Student access</p>
           <h1>Create a submission account.</h1>
-          <p>New self-service registrations are created with the STUDENT role.</p>
+          <p>Register with a course account or request onboarding through your Google email.</p>
         </div>
       </section>
 
@@ -51,6 +74,25 @@ export function RegisterPage() {
           <p className="eyebrow">New account</p>
           <h2>Register</h2>
           <p>Your teacher or admin can adjust access later if needed.</p>
+        </div>
+        <form onSubmit={handleGoogleRegister}>
+          <label>
+            Google email
+            <input
+              type="email"
+              value={googleEmail}
+              onChange={(e) => setGoogleEmail(e.target.value)}
+              required
+              placeholder="name@gmail.com"
+            />
+          </label>
+          {googleMessage && <p className="alert alert-success">{googleMessage}</p>}
+          <button className="button button-subtle" type="submit" disabled={googleSubmitting}>
+            {googleSubmitting ? "Sending..." : "Register with Google email"}
+          </button>
+        </form>
+        <div className="auth-divider">
+          <span>or</span>
         </div>
         <form onSubmit={handleSubmit}>
           <label>
