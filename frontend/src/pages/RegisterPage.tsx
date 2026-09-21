@@ -15,6 +15,9 @@ function googleStatusMessage(search: string) {
   if (status === "oauth-error") {
     return "Google sign-in was cancelled or failed.";
   }
+  if (status === "oauth-not-configured") {
+    return "Google sign-in is not configured yet. Add the Google OAuth client ID and secret, then restart the auth service.";
+  }
   if (status === "email-missing") {
     return "Google did not return an email address.";
   }
