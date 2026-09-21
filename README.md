@@ -176,6 +176,8 @@ docker run -p 8081:8081 coding-plagiarism-checker/auth:local
 ```
 POST   /api/auth/login         - Đăng nhập
 POST   /api/auth/register      - Đăng ký
+POST   /api/auth/register/google - Đăng ký bằng Google email, gửi mật khẩu tạm và link reset
+POST   /api/auth/password/reset - Đặt lại mật khẩu bằng token trong email
 GET    /api/auth/me            - Lấy thông tin user hiện tại (JWT)
 POST   /api/auth/admin/users   - Admin tạo user theo role
 ```
@@ -209,6 +211,19 @@ Các bí mật (passwords, JWT secret, API keys) được quản lý qua `.env`:
 - Không commit `.env` vào git (đã thêm vào `.gitignore`)
 - Chỉ commit `.env.example` (template)
 - Mỗi developer/environment sử dụng `.env` riêng
+
+### Email onboarding
+Luồng đăng ký Google email sinh mật khẩu tạm, tạo reset token, rồi gửi email chứa link `/reset-password?token=...`.
+Trong dev, `APP_MAIL_ENABLED=false` nên auth-service ghi email, mật khẩu tạm và reset link ra log. Khi cần gửi mail thật, cấu hình trong `.env`:
+- `APP_FRONTEND_BASE_URL`
+- `APP_MAIL_ENABLED=true`
+- `APP_MAIL_FROM`
+- `SPRING_MAIL_HOST`
+- `SPRING_MAIL_PORT`
+- `SPRING_MAIL_USERNAME`
+- `SPRING_MAIL_PASSWORD`
+- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH`
+- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE`
 
 ### Production
 Cho production, sử dụng:
