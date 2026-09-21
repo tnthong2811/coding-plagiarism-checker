@@ -1,5 +1,6 @@
 package com.plagiarism.auth.security;
 
+import com.plagiarism.auth.model.UserRole;
 import com.plagiarism.auth.service.GoogleOAuthRegistrationResult;
 import com.plagiarism.auth.service.UserService;
 import jakarta.servlet.ServletException;
@@ -20,11 +21,14 @@ import java.nio.charset.StandardCharsets;
 public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
     private final String frontendBaseUrl;
 
     public GoogleOAuth2SuccessHandler(UserService userService,
+                                      JwtUtil jwtUtil,
                                       @Value("${app.frontend-base-url:http://localhost:5173}") String frontendBaseUrl) {
         this.userService = userService;
+        this.jwtUtil = jwtUtil;
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
@@ -44,11 +48,15 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         }
 
         GoogleOAuthRegistrationResult result = userService.registerGoogleOAuthEmail(email);
-        String status = result.status() == GoogleOAuthRegistrationResult.Status.EXISTING_ACTIVE_USER
-                ? "existing"
-                : "reset-email-sent";
+        if (result.status() == GoogleOAuthRegistrationResult.Status.EXISTING_ACTIVE_USER) {
+            String role = UserRole.fromString(result.user().getRole()).name();
+            String token = jwtUtil.generateToken(result.user().getUsername(), role);
+            response.sendRedirect(frontendUrl() + "/oauth/callback?token=" + encode(token));
+            return;
+        }
+
         response.sendRedirect(frontendUrl()
-                + "/register?googleStatus=" + status
+                + "/register?googleStatus=reset-email-sent"
                 + "&email=" + encode(result.user().getEmail()));
     }
 
