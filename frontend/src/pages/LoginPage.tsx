@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { googleOAuthLoginUrl } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import { canAccessReview, canAccessUserAdmin } from "../auth/roles";
 import heroImage from "../assets/hero-analysis-workspace.png";
@@ -57,6 +58,12 @@ export function LoginPage() {
           <p className="eyebrow">Welcome back</p>
           <h2>Login</h2>
           <p>Use your course account to open the dashboard.</p>
+        </div>
+        <a className="button button-subtle" href={googleOAuthLoginUrl()}>
+          Sign in with Google
+        </a>
+        <div className="auth-divider">
+          <span>or</span>
         </div>
         <form onSubmit={handleSubmit}>
           <label>

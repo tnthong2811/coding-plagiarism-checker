@@ -1,25 +1,44 @@
 import { FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { registerGoogleEmail } from "../api/authApi";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { googleOAuthLoginUrl } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import heroImage from "../assets/hero-analysis-workspace.png";
 
+function googleStatusMessage(search: string) {
+  const params = new URLSearchParams(search);
+  const status = params.get("googleStatus");
+  const email = params.get("email");
+
+  if (status === "reset-email-sent") {
+    return `Google verified ${email ?? "your email"}. Check that inbox for the temporary password and reset link.`;
+  }
+  if (status === "oauth-error") {
+    return "Google sign-in was cancelled or failed.";
+  }
+  if (status === "email-missing") {
+    return "Google did not return an email address.";
+  }
+  if (status === "email-unverified") {
+    return "Google email must be verified before registration.";
+  }
+
+  return null;
+}
+
 export function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [googleEmail, setGoogleEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [googleMessage, setGoogleMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const googleMessage = googleStatusMessage(location.search);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
-    setGoogleMessage(null);
     setError(null);
     setSubmitting(true);
 
@@ -31,24 +50,6 @@ export function RegisterPage() {
       setError(err instanceof Error ? err.message : "Register failed");
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function handleGoogleRegister(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage(null);
-    setGoogleMessage(null);
-    setError(null);
-    setGoogleSubmitting(true);
-
-    try {
-      const response = await registerGoogleEmail({ email: googleEmail });
-      setGoogleMessage(response.message);
-      setGoogleEmail("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google email registration failed");
-    } finally {
-      setGoogleSubmitting(false);
     }
   }
 
@@ -65,7 +66,7 @@ export function RegisterPage() {
         <div>
           <p className="eyebrow">Student access</p>
           <h1>Create a submission account.</h1>
-          <p>Register with a course account or request onboarding through your Google email.</p>
+          <p>Use Google sign-in to verify your email before account onboarding.</p>
         </div>
       </section>
 
@@ -75,22 +76,12 @@ export function RegisterPage() {
           <h2>Register</h2>
           <p>Your teacher or admin can adjust access later if needed.</p>
         </div>
-        <form onSubmit={handleGoogleRegister}>
-          <label>
-            Google email
-            <input
-              type="email"
-              value={googleEmail}
-              onChange={(e) => setGoogleEmail(e.target.value)}
-              required
-              placeholder="name@gmail.com"
-            />
-          </label>
+        <div className="stacked-form">
           {googleMessage && <p className="alert alert-success">{googleMessage}</p>}
-          <button className="button button-subtle" type="submit" disabled={googleSubmitting}>
-            {googleSubmitting ? "Sending..." : "Register with Google email"}
-          </button>
-        </form>
+          <a className="button button-subtle" href={googleOAuthLoginUrl()}>
+            Sign in with Google
+          </a>
+        </div>
         <div className="auth-divider">
           <span>or</span>
         </div>

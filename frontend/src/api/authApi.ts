@@ -2,8 +2,6 @@ import { deleteJson, getJson, postJson } from "./client";
 import type {
   AdminUser,
   CreateUserRequest,
-  GoogleRegisterRequest,
-  GoogleRegisterResponse,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
@@ -13,6 +11,8 @@ import type {
   UserProfile
 } from "../types/auth";
 
+const AUTH_BASE = import.meta.env.VITE_AUTH_API_BASE || "";
+
 export function health() {
   return getJson<{ status: string }>("/actuator/health");
 }
@@ -21,8 +21,8 @@ export function register(payload: RegisterRequest) {
   return postJson<UserProfile, RegisterRequest>("/api/auth/register", payload);
 }
 
-export function registerGoogleEmail(payload: GoogleRegisterRequest) {
-  return postJson<GoogleRegisterResponse, GoogleRegisterRequest>("/api/auth/register/google", payload);
+export function googleOAuthLoginUrl() {
+  return `${AUTH_BASE}/oauth2/authorization/google`;
 }
 
 export function resetPassword(payload: ResetPasswordRequest) {

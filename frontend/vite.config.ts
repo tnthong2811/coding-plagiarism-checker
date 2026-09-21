@@ -37,6 +37,20 @@ export default defineConfig(({ mode }) => {
           proxyTimeout: 10000,
           configure: attachProxyLogging("auth")
         },
+        "/oauth2": {
+          target: authTarget,
+          changeOrigin: true,
+          timeout: 10000,
+          proxyTimeout: 10000,
+          configure: attachProxyLogging("auth")
+        },
+        "/login/oauth2": {
+          target: authTarget,
+          changeOrigin: true,
+          timeout: 10000,
+          proxyTimeout: 10000,
+          configure: attachProxyLogging("auth")
+        },
         "/submission-api": {
           target: submissionTarget,
           changeOrigin: true,

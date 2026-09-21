@@ -11,6 +11,7 @@ import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { MePage } from "./pages/MePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { OAuthCallbackPage } from "./pages/OAuthCallbackPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
