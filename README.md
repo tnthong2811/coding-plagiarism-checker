@@ -176,7 +176,8 @@ docker run -p 8081:8081 coding-plagiarism-checker/auth:local
 ```
 POST   /api/auth/login         - Đăng nhập
 POST   /api/auth/register      - Đăng ký
-POST   /api/auth/register/google - Đăng ký bằng Google email, gửi mật khẩu tạm và link reset
+GET    /oauth2/authorization/google - Sign in with Google
+GET    /login/oauth2/code/google - Google OAuth callback
 POST   /api/auth/password/reset - Đặt lại mật khẩu bằng token trong email
 GET    /api/auth/me            - Lấy thông tin user hiện tại (JWT)
 POST   /api/auth/admin/users   - Admin tạo user theo role
@@ -212,10 +213,19 @@ Các bí mật (passwords, JWT secret, API keys) được quản lý qua `.env`:
 - Chỉ commit `.env.example` (template)
 - Mỗi developer/environment sử dụng `.env` riêng
 
-### Email onboarding
-Luồng đăng ký Google email sinh mật khẩu tạm, tạo reset token, rồi gửi email chứa link `/reset-password?token=...`.
-Trong dev, `APP_MAIL_ENABLED=false` nên auth-service ghi email, mật khẩu tạm và reset link ra log. Khi cần gửi mail thật, cấu hình trong `.env`:
+### Google OAuth onboarding
+Luồng Google thật bắt đầu ở `/oauth2/authorization/google`. Sau khi Google xác thực email:
+- Nếu là user mới hoặc user còn yêu cầu reset mật khẩu, auth-service sinh mật khẩu tạm, tạo reset token, rồi gửi email chứa link `/reset-password?token=...`.
+- Nếu user đã active, auth-service cấp JWT và chuyển về frontend `/oauth/callback`.
+
+Trong Google Cloud Console, cấu hình Authorized redirect URI cho local:
+`http://localhost:8081/login/oauth2/code/google`
+
+Trong dev, nếu `APP_MAIL_ENABLED=false`, auth-service ghi email, mật khẩu tạm và reset link ra log. Khi cần gửi mail thật, cấu hình trong `.env`:
 - `APP_FRONTEND_BASE_URL`
+- `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID`
+- `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET`
+- `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE`
 - `APP_MAIL_ENABLED=true`
 - `APP_MAIL_FROM`
 - `SPRING_MAIL_HOST`

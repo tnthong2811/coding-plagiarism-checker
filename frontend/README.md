@@ -5,8 +5,9 @@ This frontend implements phase-1 auth use cases for `coding-plagiarism-checker`.
 ## Implemented screens
 
 - Login (`/login`)
-- Register (`/register`) - creates `STUDENT`; Google email registration sends temporary password + reset link
+- Register (`/register`) - creates `STUDENT`; Google sign-in verifies email and sends temporary password + reset link for new accounts
 - Reset Password (`/reset-password`) - consumes emailed reset token
+- OAuth Callback (`/oauth/callback`) - stores JWT returned after Google sign-in for active accounts
 - Dashboard (`/dashboard`) - shows current role and auth health
 - My Profile (`/me`) - calls `GET /api/auth/me`
 - Student Upload (`/submissions/upload`) - joins classrooms and uploads file to submission-service/MinIO
@@ -45,6 +46,7 @@ npm run preview
 ## Notes
 
 - By default, Vite proxies `/api` and `/actuator` to `http://localhost:8081`.
+- By default, Vite proxies `/oauth2` and `/login/oauth2` to `http://localhost:8081`.
 - By default, Vite proxies `/submission-api` to `http://localhost:8082`.
 - If you want direct API base URL, create `frontend/.env` from `.env.example` and set `VITE_AUTH_API_BASE`.
 - Optional: set `VITE_SUBMISSION_API_BASE` for direct submission-service URL.
@@ -52,7 +54,7 @@ npm run preview
 ## Quick manual test
 
 1. Register a new user from `/register`.
-2. For Google email registration, read the auth-service log when `APP_MAIL_ENABLED=false`, open the reset link, and set a new password.
+2. For Google registration, click `Sign in with Google`; read the auth-service log when `APP_MAIL_ENABLED=false`, open the reset link, and set a new password.
 3. Login from `/login`.
 4. Open `/me` to verify JWT works.
 5. Login as `BUSINESS_ADMIN` and open `/admin/classes` to create a classroom.
