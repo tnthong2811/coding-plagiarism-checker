@@ -75,30 +75,40 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "email already registered");
         }
 
-        String temporaryPassword = generateSecret(TEMPORARY_PASSWORD_BYTES);
-        String resetToken = generateSecret(RESET_TOKEN_BYTES);
+        User user = new User();
+        user.setUsername(normalizedEmail);
+        user.setEmail(normalizedEmail);
+        user.setRole(UserRole.STUDENT.name());
+        user.setPasswordResetRequired(true);
+        return issueGoogleOnboardingEmail(user);
+    }
+
+    @Transactional
+    public GoogleOAuthRegistrationResult registerGoogleOAuthEmail(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        Optional<User> existingUser = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .or(() -> userRepository.findByUsername(normalizedEmail));
+
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            if (user.getEmail() == null || user.getEmail().isBlank()) {
+                user.setEmail(normalizedEmail);
+            }
+            if (isPasswordResetRequired(user)) {
+                User saved = issueGoogleOnboardingEmail(user);
+                return new GoogleOAuthRegistrationResult(saved, GoogleOAuthRegistrationResult.Status.ONBOARDING_EMAIL_SENT);
+            }
+            userRepository.save(user);
+            return new GoogleOAuthRegistrationResult(user, GoogleOAuthRegistrationResult.Status.EXISTING_ACTIVE_USER);
+        }
 
         User user = new User();
         user.setUsername(normalizedEmail);
         user.setEmail(normalizedEmail);
-        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
         user.setRole(UserRole.STUDENT.name());
         user.setPasswordResetRequired(true);
-        User saved = userRepository.save(user);
-
-        PasswordResetToken passwordResetToken = new PasswordResetToken();
-        passwordResetToken.setUser(saved);
-        passwordResetToken.setTokenHash(hashToken(resetToken));
-        passwordResetToken.setExpiresAt(LocalDateTime.now().plusMinutes(resetTokenExpirationMinutes));
-        passwordResetTokenRepository.save(passwordResetToken);
-
-        accountMailService.sendGoogleRegistrationEmail(
-                normalizedEmail,
-                temporaryPassword,
-                passwordResetLink(resetToken)
-        );
-
-        return saved;
+        User saved = issueGoogleOnboardingEmail(user);
+        return new GoogleOAuthRegistrationResult(saved, GoogleOAuthRegistrationResult.Status.ONBOARDING_EMAIL_SENT);
     }
 
     public Optional<User> findByUsername(String username) {
@@ -185,6 +195,34 @@ public class UserService {
         byte[] bytes = new byte[byteCount];
         SECURE_RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private User issueGoogleOnboardingEmail(User user) {
+        String temporaryPassword = generateSecret(TEMPORARY_PASSWORD_BYTES);
+        String resetToken = generateSecret(RESET_TOKEN_BYTES);
+        LocalDateTime now = LocalDateTime.now();
+
+        if (user.getId() != null) {
+            passwordResetTokenRepository.findByUserAndConsumedAtIsNull(user)
+                    .forEach(token -> token.setConsumedAt(now));
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setPasswordResetRequired(true);
+        User saved = userRepository.save(user);
+
+        PasswordResetToken passwordResetToken = new PasswordResetToken();
+        passwordResetToken.setUser(saved);
+        passwordResetToken.setTokenHash(hashToken(resetToken));
+        passwordResetToken.setExpiresAt(now.plusMinutes(resetTokenExpirationMinutes));
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        accountMailService.sendGoogleRegistrationEmail(
+                saved.getEmail(),
+                temporaryPassword,
+                passwordResetLink(resetToken)
+        );
+        return saved;
     }
 
     private String hashToken(String token) {

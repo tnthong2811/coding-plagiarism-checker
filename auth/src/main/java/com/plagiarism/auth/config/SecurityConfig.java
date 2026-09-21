@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -18,6 +19,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.beans.factory.ObjectProvider;
+import com.plagiarism.auth.security.GoogleOAuth2FailureHandler;
+import com.plagiarism.auth.security.GoogleOAuth2SuccessHandler;
 import com.plagiarism.auth.security.JwtFilter;
 
 import java.util.List;
@@ -27,12 +31,18 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
+    private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider;
 
-    public SecurityConfig(JwtFilter jwtFilter) {
+    public SecurityConfig(JwtFilter jwtFilter,
+                          ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider) {
         this.jwtFilter = jwtFilter;
+        this.clientRegistrationRepositoryProvider = clientRegistrationRepositoryProvider;
     }
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           ObjectProvider<GoogleOAuth2SuccessHandler> googleOAuth2SuccessHandlerProvider,
+                                           ObjectProvider<GoogleOAuth2FailureHandler> googleOAuth2FailureHandlerProvider) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
@@ -41,10 +51,10 @@ public class SecurityConfig {
                 .requestMatchers(
                         HttpMethod.POST,
                         "/api/auth/register",
-                        "/api/auth/register/google",
                         "/api/auth/login",
                         "/api/auth/password/reset"
                 ).permitAll()
+                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
@@ -61,7 +71,19 @@ public class SecurityConfig {
                     response.getWriter().write("{\"error\":\"forbidden\"}");
                 })
             )
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
+
+        GoogleOAuth2SuccessHandler googleOAuth2SuccessHandler = googleOAuth2SuccessHandlerProvider.getIfAvailable();
+        GoogleOAuth2FailureHandler googleOAuth2FailureHandler = googleOAuth2FailureHandlerProvider.getIfAvailable();
+        if (clientRegistrationRepositoryProvider.getIfAvailable() != null
+                && googleOAuth2SuccessHandler != null
+                && googleOAuth2FailureHandler != null) {
+            http.oauth2Login(oauth2 -> oauth2
+                    .successHandler(googleOAuth2SuccessHandler)
+                    .failureHandler(googleOAuth2FailureHandler)
+            );
+        }
+
         // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -53,19 +53,6 @@ public class AuthController {
                 .orElseGet(() -> ResponseEntity.status(401).body(Map.of("error", "invalid credentials")));
     }
 
-    @PostMapping("/register/google")
-    public ResponseEntity<?> registerGoogle(@RequestBody GoogleRegisterRequest req) {
-        User user = userService.registerGoogleEmail(req.getEmail());
-        return ResponseEntity.ok(Map.of(
-                "id", user.getId(),
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "role", roleName(user),
-                "passwordResetRequired", true,
-                "message", "Account created. Check your email for the temporary password and reset link."
-        ));
-    }
-
     @PostMapping("/password/reset")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest req) {
         User user = userService.resetPassword(req.getToken(), req.getPassword());
@@ -171,11 +158,6 @@ public class AuthController {
     static class RegisterRequest {
         private String username;
         private String password;
-    }
-
-    @Data
-    static class GoogleRegisterRequest {
-        private String email;
     }
 
     @Data

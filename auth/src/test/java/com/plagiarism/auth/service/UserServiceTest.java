@@ -1,25 +1,24 @@
 package com.plagiarism.auth.service;
 
 import com.plagiarism.auth.model.User;
+import com.plagiarism.auth.model.UserRole;
 import com.plagiarism.auth.repository.PasswordResetTokenRepository;
 import com.plagiarism.auth.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -32,12 +31,14 @@ class UserServiceTest {
     private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Test
-    void googleEmailRegistrationSendsTemporaryPasswordAndRequiresReset() {
+    void googleOAuthRegistrationSendsTemporaryPasswordAndRequiresReset() {
         AccountMailService mailService = mock(AccountMailService.class);
         UserService userService = userService(mailService);
 
-        User user = userService.registerGoogleEmail(" Student@Gmail.Com ");
+        GoogleOAuthRegistrationResult result = userService.registerGoogleOAuthEmail(" Student@Gmail.Com ");
+        User user = result.user();
 
+        assertThat(result.status()).isEqualTo(GoogleOAuthRegistrationResult.Status.ONBOARDING_EMAIL_SENT);
         assertThat(user.getUsername()).isEqualTo("student@gmail.com");
         assertThat(user.getEmail()).isEqualTo("student@gmail.com");
         assertThat(userService.isPasswordResetRequired(user)).isTrue();
@@ -62,16 +63,18 @@ class UserServiceTest {
     }
 
     @Test
-    void duplicateGoogleEmailRegistrationIsRejected() {
-        UserService userService = userService(mock(AccountMailService.class));
-        userService.registerGoogleEmail("student@gmail.com");
+    void googleOAuthRegistrationForActiveUserDoesNotSendAnotherResetEmail() {
+        AccountMailService mailService = mock(AccountMailService.class);
+        UserService userService = userService(mailService);
+        User existing = userService.register("student@gmail.com", "student-secret", UserRole.STUDENT);
 
-        assertThatExceptionOfType(ResponseStatusException.class)
-                .isThrownBy(() -> userService.registerGoogleEmail(" STUDENT@gmail.com "))
-                .satisfies(ex -> {
-                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-                    assertThat(ex.getReason()).isEqualTo("email already registered");
-                });
+        GoogleOAuthRegistrationResult result = userService.registerGoogleOAuthEmail(" STUDENT@gmail.com ");
+
+        assertThat(result.status()).isEqualTo(GoogleOAuthRegistrationResult.Status.EXISTING_ACTIVE_USER);
+        assertThat(result.user().getId()).isEqualTo(existing.getId());
+        assertThat(result.user().getEmail()).isEqualTo("student@gmail.com");
+        assertThat(userService.checkPassword(result.user(), "student-secret")).isTrue();
+        verifyNoInteractions(mailService);
     }
 
     private UserService userService(AccountMailService mailService) {
