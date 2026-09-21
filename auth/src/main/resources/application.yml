@@ -19,6 +19,14 @@ spring:
   jackson:
     time-zone: Asia/Ho_Chi_Minh
 
+app:
+  frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
+  mail:
+    enabled: ${APP_MAIL_ENABLED:false}
+    from: ${APP_MAIL_FROM:noreply@codeproof.local}
+  password-reset:
+    token-expiration-minutes: ${APP_PASSWORD_RESET_EXPIRATION_MINUTES:30}
+
 # Cấu hình JWT tự định nghĩa
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-your-256-bit-secret}

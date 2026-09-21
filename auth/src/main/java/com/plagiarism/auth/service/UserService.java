@@ -1,26 +1,56 @@
 package com.plagiarism.auth.service;
 
+import com.plagiarism.auth.model.PasswordResetToken;
 import com.plagiarism.auth.model.User;
 import com.plagiarism.auth.model.UserRole;
+import com.plagiarism.auth.repository.PasswordResetTokenRepository;
 import com.plagiarism.auth.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+    private static final int TEMPORARY_PASSWORD_BYTES = 12;
+    private static final int RESET_TOKEN_BYTES = 32;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    private final UserRepository userRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AccountMailService accountMailService;
+    private final String frontendBaseUrl;
+    private final long resetTokenExpirationMinutes;
+
+    public UserService(UserRepository userRepository,
+                       PasswordResetTokenRepository passwordResetTokenRepository,
+                       PasswordEncoder passwordEncoder,
+                       AccountMailService accountMailService,
+                       @Value("${app.frontend-base-url:http://localhost:5173}") String frontendBaseUrl,
+                       @Value("${app.password-reset.token-expiration-minutes:30}") long resetTokenExpirationMinutes) {
         this.userRepository = userRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.accountMailService = accountMailService;
+        this.frontendBaseUrl = frontendBaseUrl;
+        this.resetTokenExpirationMinutes = resetTokenExpirationMinutes;
     }
 
     public User register(String username, String rawPassword) {
@@ -33,15 +63,58 @@ public class UserService {
         u.setUsername(username);
         u.setPasswordHash(hash);
         u.setRole(role.name());
+        u.setPasswordResetRequired(false);
         return userRepository.save(u);
+    }
+
+    @Transactional
+    public User registerGoogleEmail(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        if (userRepository.findByUsername(normalizedEmail).isPresent()
+                || userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "email already registered");
+        }
+
+        String temporaryPassword = generateSecret(TEMPORARY_PASSWORD_BYTES);
+        String resetToken = generateSecret(RESET_TOKEN_BYTES);
+
+        User user = new User();
+        user.setUsername(normalizedEmail);
+        user.setEmail(normalizedEmail);
+        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setRole(UserRole.STUDENT.name());
+        user.setPasswordResetRequired(true);
+        User saved = userRepository.save(user);
+
+        PasswordResetToken passwordResetToken = new PasswordResetToken();
+        passwordResetToken.setUser(saved);
+        passwordResetToken.setTokenHash(hashToken(resetToken));
+        passwordResetToken.setExpiresAt(LocalDateTime.now().plusMinutes(resetTokenExpirationMinutes));
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        accountMailService.sendGoogleRegistrationEmail(
+                normalizedEmail,
+                temporaryPassword,
+                passwordResetLink(resetToken)
+        );
+
+        return saved;
     }
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
 
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmailIgnoreCase(normalizeEmail(email));
+    }
+
     public boolean checkPassword(User user, String rawPassword) {
         return passwordEncoder.matches(rawPassword, user.getPasswordHash());
+    }
+
+    public boolean isPasswordResetRequired(User user) {
+        return Boolean.TRUE.equals(user.getPasswordResetRequired());
     }
 
     public List<User> findAllUsers() {
@@ -60,6 +133,29 @@ public class UserService {
     }
 
     @Transactional
+    public User resetPassword(String token, String rawPassword) {
+        String normalizedToken = normalizeRequired(token, "reset token is required");
+        String normalizedPassword = normalizeRequired(rawPassword, "password is required");
+        if (normalizedPassword.length() < 6) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "password must be at least 6 characters");
+        }
+
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository
+                .findByTokenHashAndConsumedAtIsNull(hashToken(normalizedToken))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "reset link is invalid"));
+
+        if (passwordResetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "reset link has expired");
+        }
+
+        passwordResetToken.setConsumedAt(LocalDateTime.now());
+        User user = passwordResetToken.getUser();
+        user.setPasswordHash(passwordEncoder.encode(normalizedPassword));
+        user.setPasswordResetRequired(false);
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public User deleteById(Long id, String currentUsername) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
@@ -68,6 +164,44 @@ public class UserService {
         }
         userRepository.delete(user);
         return user;
+    }
+
+    private String normalizeEmail(String email) {
+        String normalized = normalizeRequired(email, "email is required").toLowerCase(Locale.ROOT);
+        if (!EMAIL_PATTERN.matcher(normalized).matches()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "email is invalid");
+        }
+        return normalized;
+    }
+
+    private String normalizeRequired(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+        }
+        return value.trim();
+    }
+
+    private String generateSecret(int byteCount) {
+        byte[] bytes = new byte[byteCount];
+        SECURE_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
+    }
+
+    private String passwordResetLink(String token) {
+        String baseUrl = frontendBaseUrl == null || frontendBaseUrl.isBlank()
+                ? "http://localhost:5173"
+                : frontendBaseUrl.trim().replaceAll("/+$", "");
+        return baseUrl + "/reset-password?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
     }
 }
 

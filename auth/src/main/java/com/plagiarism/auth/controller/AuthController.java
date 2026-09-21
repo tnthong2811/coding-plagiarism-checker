@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,11 +42,36 @@ public class AuthController {
         return userService.findByUsername(req.getUsername())
                 .filter(u -> userService.checkPassword(u, req.getPassword()))
                 .map(u -> {
+                    if (userService.isPasswordResetRequired(u)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(Map.of("error", "password reset required"));
+                    }
                     String role = roleName(u);
                     String token = jwtUtil.generateToken(u.getUsername(), role);
                     return ResponseEntity.ok(Map.of("token", token, "role", role, "username", u.getUsername()));
                 })
                 .orElseGet(() -> ResponseEntity.status(401).body(Map.of("error", "invalid credentials")));
+    }
+
+    @PostMapping("/register/google")
+    public ResponseEntity<?> registerGoogle(@RequestBody GoogleRegisterRequest req) {
+        User user = userService.registerGoogleEmail(req.getEmail());
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "email", user.getEmail(),
+                "role", roleName(user),
+                "passwordResetRequired", true,
+                "message", "Account created. Check your email for the temporary password and reset link."
+        ));
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest req) {
+        User user = userService.resetPassword(req.getToken(), req.getPassword());
+        Map<String, Object> response = userResponse(user);
+        response.put("message", "Password reset successfully. You can log in now.");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/me")
@@ -104,11 +130,13 @@ public class AuthController {
     }
 
     private Map<String, Object> userResponse(User user) {
-        return Map.of(
-                "id", user.getId(),
-                "username", user.getUsername(),
-                "role", roleName(user)
-        );
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", user.getId());
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("role", roleName(user));
+        response.put("passwordResetRequired", userService.isPasswordResetRequired(user));
+        return response;
     }
 
     private String roleName(User user) {
@@ -142,6 +170,17 @@ public class AuthController {
     @Data
     static class RegisterRequest {
         private String username;
+        private String password;
+    }
+
+    @Data
+    static class GoogleRegisterRequest {
+        private String email;
+    }
+
+    @Data
+    static class ResetPasswordRequest {
+        private String token;
         private String password;
     }
 
