@@ -10,8 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
@@ -86,6 +88,30 @@ class UserServiceTest {
         assertThat(passwordResetTokenRepository.findAll())
                 .allSatisfy(token -> assertThat(token.getConsumedAt()).isNotNull());
         verifyNoInteractions(mailService);
+    }
+
+    @Test
+    void updateUsernameChangesUsernameWithoutChangingGoogleEmail() {
+        UserService userService = userService(mock(AccountMailService.class));
+        User user = userService.registerGoogleOAuthEmail("student@gmail.com").user();
+
+        User updated = userService.updateUsername(user.getId(), "Student One");
+
+        assertThat(updated.getUsername()).isEqualTo("Student One");
+        assertThat(updated.getEmail()).isEqualTo("student@gmail.com");
+        assertThat(userRepository.findByEmailIgnoreCase("student@gmail.com"))
+                .hasValueSatisfying(found -> assertThat(found.getId()).isEqualTo(user.getId()));
+    }
+
+    @Test
+    void updateUsernameRejectsDuplicateUsername() {
+        UserService userService = userService(mock(AccountMailService.class));
+        User first = userService.register("first", "secret", UserRole.STUDENT);
+        userService.register("second", "secret", UserRole.STUDENT);
+
+        assertThatThrownBy(() -> userService.updateUsername(first.getId(), "second"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("username exists");
     }
 
     private UserService userService(AccountMailService mailService) {

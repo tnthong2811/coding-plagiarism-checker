@@ -1,5 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { login as loginApi, me as meApi, register as registerApi } from "../api/authApi";
+import {
+  login as loginApi,
+  me as meApi,
+  register as registerApi,
+  updateMyUsername as updateMyUsernameApi
+} from "../api/authApi";
 import type { LoginRequest, RegisterRequest, UserProfile } from "../types/auth";
 
 interface AuthContextValue {
@@ -8,6 +13,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (payload: LoginRequest) => Promise<UserProfile>;
   completeOAuthLogin: (token: string) => Promise<UserProfile>;
+  updateUsername: (username: string) => Promise<UserProfile>;
   register: (payload: RegisterRequest) => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
@@ -56,17 +62,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   const completeOAuthLogin = useCallback(async (nextToken: string) => {
-    setToken(nextToken);
-    localStorage.setItem(TOKEN_KEY, nextToken);
-    const profile = await meApi(nextToken);
-    setUser(profile);
-    return profile;
+    try {
+      const profile = await meApi(nextToken);
+      localStorage.setItem(TOKEN_KEY, nextToken);
+      setToken(nextToken);
+      setUser(profile);
+      return profile;
+    } catch (err) {
+      localStorage.removeItem(TOKEN_KEY);
+      setToken(null);
+      setUser(null);
+      throw err;
+    }
   }, []);
 
   const login = useCallback(async (payload: LoginRequest) => {
     const response = await loginApi(payload);
     return completeOAuthLogin(response.token);
   }, [completeOAuthLogin]);
+
+  const updateUsername = useCallback(async (username: string) => {
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+    const response = await updateMyUsernameApi(token, { username });
+    localStorage.setItem(TOKEN_KEY, response.token);
+    setToken(response.token);
+    setUser(response.user);
+    return response.user;
+  }, [token]);
 
   async function register(payload: RegisterRequest) {
     await registerApi(payload);
@@ -88,8 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const value = useMemo<AuthContextValue>(
-    () => ({ token, user, loading, login, completeOAuthLogin, register, logout, refreshMe }),
-    [token, user, loading, login, completeOAuthLogin]
+    () => ({ token, user, loading, login, completeOAuthLogin, updateUsername, register, logout, refreshMe }),
+    [token, user, loading, login, completeOAuthLogin, updateUsername]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

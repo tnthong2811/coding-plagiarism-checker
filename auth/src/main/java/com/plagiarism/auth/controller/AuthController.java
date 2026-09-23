@@ -9,12 +9,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -63,12 +66,26 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
+        if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         }
-        return userService.findByUsername(authentication.getName())
+        return authenticatedUser(authentication)
                 .map(u -> ResponseEntity.ok(userResponse(u)))
-                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "user not found")));
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "unauthorized")));
+    }
+
+    @PostMapping("/me/username")
+    public ResponseEntity<?> updateMyUsername(@RequestBody UpdateUsernameRequest req, Authentication authentication) {
+        User currentUser = authenticatedUser(authentication)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized"));
+        User updatedUser = userService.updateUsername(currentUser.getId(), req.getUsername());
+        String role = roleName(updatedUser);
+        String token = jwtUtil.generateToken(updatedUser.getUsername(), role);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("token", token);
+        response.put("user", userResponse(updatedUser));
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/admin/users")
@@ -146,12 +163,39 @@ public class AuthController {
     }
 
     private UserRole currentRole(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+        if (authentication == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized");
         }
-        return userService.findByUsername(authentication.getName())
+        return authenticatedUser(authentication)
                 .map(user -> UserRole.fromString(user.getRole()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized"));
+    }
+
+    private Optional<User> authenticatedUser(Authentication authentication) {
+        if (authentication.getName() != null && !authentication.getName().isBlank()) {
+            Optional<User> byUsername = userService.findByUsername(authentication.getName());
+            if (byUsername.isPresent()) {
+                return byUsername;
+            }
+        }
+
+        String email = authenticatedEmail(authentication);
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
+        return userService.findByEmail(email);
+    }
+
+    private String authenticatedEmail(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof OidcUser oidcUser) {
+            return oidcUser.getEmail();
+        }
+        if (principal instanceof OAuth2User oauth2User) {
+            Object email = oauth2User.getAttribute("email");
+            return email == null ? null : email.toString();
+        }
+        return null;
     }
 
     @Data
@@ -170,6 +214,11 @@ public class AuthController {
     static class LoginRequest {
         private String username;
         private String password;
+    }
+
+    @Data
+    static class UpdateUsernameRequest {
+        private String username;
     }
 
     @Data

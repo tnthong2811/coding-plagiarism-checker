@@ -7,6 +7,8 @@ import type {
   RegisterRequest,
   ResetPasswordRequest,
   ResetPasswordResponse,
+  UpdateUsernameRequest,
+  UpdateUsernameResponse,
   UpdateUserRoleRequest,
   UserProfile
 } from "../types/auth";
@@ -35,6 +37,10 @@ export function login(payload: LoginRequest) {
 
 export function me(token: string) {
   return getJson<UserProfile>("/api/auth/me", token);
+}
+
+export function updateMyUsername(token: string, payload: UpdateUsernameRequest) {
+  return postJson<UpdateUsernameResponse, UpdateUsernameRequest>("/api/auth/me/username", payload, token);
 }
 
 export function createUserByAdmin(token: string, payload: CreateUserRequest) {

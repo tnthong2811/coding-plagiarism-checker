@@ -33,6 +33,15 @@ export interface LoginResponse {
   role: UserRole;
 }
 
+export interface UpdateUsernameRequest {
+  username: string;
+}
+
+export interface UpdateUsernameResponse {
+  token: string;
+  user: UserProfile;
+}
+
 export interface CreateUserRequest {
   username: string;
   password: string;

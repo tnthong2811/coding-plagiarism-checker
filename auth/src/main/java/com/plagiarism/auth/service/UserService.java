@@ -145,6 +145,21 @@ public class UserService {
     }
 
     @Transactional
+    public User updateUsername(Long id, String username) {
+        String normalizedUsername = normalizeUsername(username);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
+
+        Optional<User> existingUser = userRepository.findByUsername(normalizedUsername);
+        if (existingUser.isPresent() && !existingUser.get().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "username exists");
+        }
+
+        user.setUsername(normalizedUsername);
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public User resetPassword(String token, String rawPassword) {
         String normalizedToken = normalizeRequired(token, "reset token is required");
         String normalizedPassword = normalizeRequired(rawPassword, "password is required");
@@ -182,6 +197,14 @@ public class UserService {
         String normalized = normalizeRequired(email, "email is required").toLowerCase(Locale.ROOT);
         if (!EMAIL_PATTERN.matcher(normalized).matches()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "email is invalid");
+        }
+        return normalized;
+    }
+
+    private String normalizeUsername(String username) {
+        String normalized = normalizeRequired(username, "username is required");
+        if (normalized.length() < 2 || normalized.length() > 60) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "username must be 2-60 characters");
         }
         return normalized;
     }

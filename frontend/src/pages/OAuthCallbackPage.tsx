@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canAccessReview, canAccessUserAdmin } from "../auth/roles";
-import type { UserRole } from "../types/auth";
+import type { UserProfile, UserRole } from "../types/auth";
 
 function destinationForRole(role: UserRole) {
   if (canAccessUserAdmin(role)) {
@@ -17,11 +17,24 @@ function destinationForRole(role: UserRole) {
   return "/dashboard";
 }
 
+function shouldAskForUsername(profile: UserProfile) {
+  return Boolean(profile.email && profile.username.toLowerCase() === profile.email.toLowerCase());
+}
+
+function suggestedUsername(profile: UserProfile) {
+  return profile.email?.split("@")[0] ?? "";
+}
+
 export function OAuthCallbackPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { completeOAuthLogin } = useAuth();
+  const { completeOAuthLogin, updateUsername } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [profileNeedingName, setProfileNeedingName] = useState<UserProfile | null>(null);
+  const [username, setUsername] = useState("");
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const completionRef = useRef<{ token: string; promise: ReturnType<typeof completeOAuthLogin> } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -31,14 +44,29 @@ export function OAuthCallbackPage() {
       return;
     }
     const oauthToken = tokenParam;
+    let completion = completionRef.current;
+    if (!completion || completion.token !== oauthToken) {
+      completion = { token: oauthToken, promise: completeOAuthLogin(oauthToken) };
+      completionRef.current = completion;
+    }
+    const activeCompletion = completion;
 
     async function finish() {
       try {
-        const profile = await completeOAuthLogin(oauthToken);
-        if (active) {
-          navigate(destinationForRole(profile.role), { replace: true });
+        const profile = await activeCompletion.promise;
+        if (!active) {
+          return;
         }
+        if (shouldAskForUsername(profile)) {
+          setUsername(suggestedUsername(profile));
+          setProfileNeedingName(profile);
+          return;
+        }
+        navigate(destinationForRole(profile.role), { replace: true });
       } catch (err) {
+        if (completionRef.current?.token === oauthToken) {
+          completionRef.current = null;
+        }
         if (active) {
           setError(err instanceof Error ? err.message : "Google sign-in failed");
         }
@@ -50,6 +78,30 @@ export function OAuthCallbackPage() {
       active = false;
     };
   }, [completeOAuthLogin, location.search, navigate]);
+
+  async function handleUsernameSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profileNeedingName) {
+      return;
+    }
+
+    const nextUsername = username.trim();
+    if (!nextUsername) {
+      setSetupError("Please enter a name.");
+      return;
+    }
+
+    setSaving(true);
+    setSetupError(null);
+    try {
+      const updatedProfile = await updateUsername(nextUsername);
+      navigate(destinationForRole(updatedProfile.role), { replace: true });
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : "Could not update your name");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <main className="not-found-page">
@@ -65,6 +117,36 @@ export function OAuthCallbackPage() {
           <p className="route-loading">Please wait...</p>
         )}
       </section>
+      {profileNeedingName && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="confirm-dialog google-name-dialog" role="dialog" aria-modal="true" aria-labelledby="google-name-title">
+            <div>
+              <p className="eyebrow">Google sign-in</p>
+              <h2 id="google-name-title">Choose your name</h2>
+              <p>This name will be saved to your account.</p>
+            </div>
+            <form onSubmit={handleUsernameSubmit}>
+              <label>
+                Name
+                <input
+                  autoFocus
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  minLength={2}
+                  maxLength={60}
+                  required
+                />
+              </label>
+              {setupError && <p className="alert alert-error">{setupError}</p>}
+              <div className="confirm-dialog__actions">
+                <button className="button button-primary" type="submit" disabled={saving}>
+                  {saving ? "Saving..." : "Save and continue"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
