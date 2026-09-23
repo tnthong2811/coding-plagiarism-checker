@@ -95,20 +95,22 @@ public class UserService {
                 user.setEmail(normalizedEmail);
             }
             if (isPasswordResetRequired(user)) {
-                User saved = issueGoogleOnboardingEmail(user);
-                return new GoogleOAuthRegistrationResult(saved, GoogleOAuthRegistrationResult.Status.ONBOARDING_EMAIL_SENT);
+                consumeOutstandingPasswordResetTokens(user);
+                user.setPasswordHash(passwordEncoder.encode(generateSecret(TEMPORARY_PASSWORD_BYTES)));
             }
-            userRepository.save(user);
-            return new GoogleOAuthRegistrationResult(user, GoogleOAuthRegistrationResult.Status.EXISTING_ACTIVE_USER);
+            user.setPasswordResetRequired(false);
+            User saved = userRepository.save(user);
+            return new GoogleOAuthRegistrationResult(saved, GoogleOAuthRegistrationResult.Status.EXISTING_USER);
         }
 
         User user = new User();
         user.setUsername(normalizedEmail);
         user.setEmail(normalizedEmail);
         user.setRole(UserRole.STUDENT.name());
-        user.setPasswordResetRequired(true);
-        User saved = issueGoogleOnboardingEmail(user);
-        return new GoogleOAuthRegistrationResult(saved, GoogleOAuthRegistrationResult.Status.ONBOARDING_EMAIL_SENT);
+        user.setPasswordHash(passwordEncoder.encode(generateSecret(TEMPORARY_PASSWORD_BYTES)));
+        user.setPasswordResetRequired(false);
+        User saved = userRepository.save(user);
+        return new GoogleOAuthRegistrationResult(saved, GoogleOAuthRegistrationResult.Status.CREATED);
     }
 
     public Optional<User> findByUsername(String username) {
@@ -203,8 +205,7 @@ public class UserService {
         LocalDateTime now = LocalDateTime.now();
 
         if (user.getId() != null) {
-            passwordResetTokenRepository.findByUserAndConsumedAtIsNull(user)
-                    .forEach(token -> token.setConsumedAt(now));
+            consumeOutstandingPasswordResetTokens(user);
         }
 
         user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
@@ -223,6 +224,12 @@ public class UserService {
                 passwordResetLink(resetToken)
         );
         return saved;
+    }
+
+    private void consumeOutstandingPasswordResetTokens(User user) {
+        LocalDateTime now = LocalDateTime.now();
+        passwordResetTokenRepository.findByUserAndConsumedAtIsNull(user)
+                .forEach(token -> token.setConsumedAt(now));
     }
 
     private String hashToken(String token) {

@@ -215,13 +215,14 @@ Các bí mật (passwords, JWT secret, API keys) được quản lý qua `.env`:
 
 ### Google OAuth onboarding
 Luồng Google thật bắt đầu ở `/oauth2/authorization/google`. Sau khi Google xác thực email:
-- Nếu là user mới hoặc user còn yêu cầu reset mật khẩu, auth-service sinh mật khẩu tạm, tạo reset token, rồi gửi email chứa link `/reset-password?token=...`.
-- Nếu user đã active, auth-service cấp JWT và chuyển về frontend `/oauth/callback`.
+- Nếu là user mới, auth-service tạo tài khoản `STUDENT` bằng email Google đã xác thực.
+- Nếu user đã tồn tại, auth-service dùng tài khoản đó.
+- Sau đó auth-service cấp JWT và chuyển về frontend `/oauth/callback`.
 
 Trong Google Cloud Console, cấu hình Authorized redirect URI cho local:
 `http://localhost:8081/login/oauth2/code/google`
 
-Trong dev, nếu `APP_MAIL_ENABLED=false`, auth-service ghi email, mật khẩu tạm và reset link ra log. Khi cần gửi mail thật, cấu hình trong `.env`:
+Khi cần gửi mail thật cho các luồng reset mật khẩu khác, cấu hình trong `.env`:
 - `APP_FRONTEND_BASE_URL`
 - `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID`
 - `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET`

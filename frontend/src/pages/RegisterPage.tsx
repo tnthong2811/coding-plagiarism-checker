@@ -9,8 +9,8 @@ function googleStatusMessage(search: string) {
   const status = params.get("googleStatus");
   const email = params.get("email");
 
-  if (status === "reset-email-sent") {
-    return `Google verified ${email ?? "your email"}. Check that inbox for the temporary password and reset link.`;
+  if (status === "login-complete") {
+    return `Google verified ${email ?? "your email"}. You can continue in the app.`;
   }
   if (status === "oauth-error") {
     return "Google sign-in was cancelled or failed.";
@@ -69,7 +69,7 @@ export function RegisterPage() {
         <div>
           <p className="eyebrow">Student access</p>
           <h1>Create a submission account.</h1>
-          <p>Use Google sign-in to verify your email before account onboarding.</p>
+          <p>Use Google sign-in to create or access your student account.</p>
         </div>
       </section>
 

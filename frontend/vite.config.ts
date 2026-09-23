@@ -14,9 +14,9 @@ function attachProxyLogging(label: string) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const authTarget = env.VITE_AUTH_API_BASE || "http://127.0.0.1:8081";
-  const submissionTarget = env.VITE_SUBMISSION_API_BASE || "http://127.0.0.1:8082";
-  const analyzerTarget = env.VITE_ANALYZER_API_BASE || "http://127.0.0.1:8083";
+  const authTarget = env.VITE_AUTH_API_BASE || "http://localhost:8081";
+  const submissionTarget = env.VITE_SUBMISSION_API_BASE || "http://localhost:8082";
+  const analyzerTarget = env.VITE_ANALYZER_API_BASE || "http://localhost:8083";
 
   return {
     plugins: [react()],

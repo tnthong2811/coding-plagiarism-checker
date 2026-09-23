@@ -5,9 +5,9 @@ This frontend implements phase-1 auth use cases for `coding-plagiarism-checker`.
 ## Implemented screens
 
 - Login (`/login`)
-- Register (`/register`) - creates `STUDENT`; Google sign-in verifies email and sends temporary password + reset link for new accounts
+- Register (`/register`) - creates `STUDENT`; Google sign-in creates or logs in with a verified Google email
 - Reset Password (`/reset-password`) - consumes emailed reset token
-- OAuth Callback (`/oauth/callback`) - stores JWT returned after Google sign-in for active accounts
+- OAuth Callback (`/oauth/callback`) - stores JWT returned after Google sign-in
 - Dashboard (`/dashboard`) - shows current role and auth health
 - My Profile (`/me`) - calls `GET /api/auth/me`
 - Student Upload (`/submissions/upload`) - joins classrooms and uploads file to submission-service/MinIO
@@ -54,8 +54,8 @@ npm run preview
 ## Quick manual test
 
 1. Register a new user from `/register`.
-2. For Google registration, click `Sign in with Google`; read the auth-service log when `APP_MAIL_ENABLED=false`, open the reset link, and set a new password.
-3. Login from `/login`.
+2. For Google registration/login, click `Sign in with Google` and finish the Google account prompt.
+3. Login from `/login` for username/password accounts.
 4. Open `/me` to verify JWT works.
 5. Login as `BUSINESS_ADMIN` and open `/admin/classes` to create a classroom.
 6. Assign a teacher username to the classroom, then create an assignment from `/teacher/submissions/history`.

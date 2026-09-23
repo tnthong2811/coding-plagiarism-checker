@@ -48,16 +48,9 @@ public class GoogleOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         }
 
         GoogleOAuthRegistrationResult result = userService.registerGoogleOAuthEmail(email);
-        if (result.status() == GoogleOAuthRegistrationResult.Status.EXISTING_ACTIVE_USER) {
-            String role = UserRole.fromString(result.user().getRole()).name();
-            String token = jwtUtil.generateToken(result.user().getUsername(), role);
-            response.sendRedirect(frontendUrl() + "/oauth/callback?token=" + encode(token));
-            return;
-        }
-
-        response.sendRedirect(frontendUrl()
-                + "/register?googleStatus=reset-email-sent"
-                + "&email=" + encode(result.user().getEmail()));
+        String role = UserRole.fromString(result.user().getRole()).name();
+        String token = jwtUtil.generateToken(result.user().getUsername(), role);
+        response.sendRedirect(frontendUrl() + "/oauth/callback?token=" + encode(token));
     }
 
     private String extractEmail(Authentication authentication) {
