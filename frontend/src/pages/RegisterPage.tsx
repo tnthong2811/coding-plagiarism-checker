@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { googleOAuthLoginUrl } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import heroImage from "../assets/hero-analysis-workspace.png";
@@ -29,11 +29,10 @@ function googleStatusMessage(search: string) {
 }
 
 export function RegisterPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { register } = useAuth();
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -46,9 +45,10 @@ export function RegisterPage() {
     setSubmitting(true);
 
     try {
-      await register({ username, password });
-      setMessage("Account created. You can log in now.");
-      setTimeout(() => navigate("/login"), 700);
+      const nextMessage = await register({ email, username });
+      setMessage(nextMessage);
+      setEmail("");
+      setUsername("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Register failed");
     } finally {
@@ -69,7 +69,7 @@ export function RegisterPage() {
         <div>
           <p className="eyebrow">Student access</p>
           <h1>Create a submission account.</h1>
-          <p>Use Google sign-in to create or access your student account.</p>
+          <p>Use your email to receive a temporary password, or continue with Google sign-in.</p>
         </div>
       </section>
 
@@ -77,7 +77,7 @@ export function RegisterPage() {
         <div className="auth-card__header">
           <p className="eyebrow">New account</p>
           <h2>Register</h2>
-          <p>Your teacher or admin can adjust access later if needed.</p>
+          <p>After registration, check your email for the temporary password.</p>
         </div>
         <div className="stacked-form">
           {googleMessage && <p className="alert alert-success">{googleMessage}</p>}
@@ -90,18 +90,17 @@ export function RegisterPage() {
         </div>
         <form onSubmit={handleSubmit}>
           <label>
-            Username
-            <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </label>
           <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
+            Username
+            <input value={username} onChange={(e) => setUsername(e.target.value)} required />
           </label>
           {message && <p className="alert alert-success">{message}</p>}
           {error && <p className="alert alert-error">{error}</p>}

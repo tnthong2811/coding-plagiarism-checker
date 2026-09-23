@@ -1,8 +1,9 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ApiError } from "../api/client";
 import { googleOAuthLoginUrl } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
-import { canAccessReview, canAccessUserAdmin } from "../auth/roles";
+import { defaultRouteForRole } from "../auth/roles";
 import heroImage from "../assets/hero-analysis-workspace.png";
 
 export function LoginPage() {
@@ -20,16 +21,14 @@ export function LoginPage() {
 
     try {
       const profile = await login({ username, password });
-      const target =
-        canAccessUserAdmin(profile.role)
-          ? "/admin"
-          : canAccessReview(profile.role)
-            ? "/teacher/submissions/history"
-            : profile.role === "STUDENT"
-            ? "/submissions/upload"
-            : "/dashboard";
-      navigate(target, { replace: true });
+      navigate(defaultRouteForRole(profile.role), { replace: true });
     } catch (err) {
+      if (isTemporaryPasswordRequired(err)) {
+        navigate(`/reset-password?mode=temporary&username=${encodeURIComponent(username)}`, {
+          state: { username, temporaryPassword: password }
+        });
+        return;
+      }
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setSubmitting(false);
@@ -93,5 +92,16 @@ export function LoginPage() {
       </section>
     </main>
   );
+}
+
+function isTemporaryPasswordRequired(error: unknown) {
+  if (!(error instanceof ApiError) || error.status !== 403) {
+    return false;
+  }
+  if (typeof error.responseBody === "object" && error.responseBody !== null) {
+    const body = error.responseBody as { error?: unknown };
+    return body.error === "password reset required";
+  }
+  return error.message.includes("password reset required");
 }
 

@@ -14,8 +14,12 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
+  email: string;
   username: string;
-  password: string;
+}
+
+export interface RegisterResponse extends UserProfile {
+  message: string;
 }
 
 export interface ResetPasswordRequest {
@@ -27,10 +31,20 @@ export interface ResetPasswordResponse extends UserProfile {
   message: string;
 }
 
+export interface TemporaryPasswordRequest {
+  username: string;
+  temporaryPassword: string;
+  password: string;
+}
+
 export interface LoginResponse {
   token: string;
   username: string;
   role: UserRole;
+}
+
+export interface TemporaryPasswordResponse extends LoginResponse {
+  message: string;
 }
 
 export interface UpdateUsernameRequest {

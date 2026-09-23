@@ -5,8 +5,11 @@ import type {
   LoginRequest,
   LoginResponse,
   RegisterRequest,
+  RegisterResponse,
   ResetPasswordRequest,
   ResetPasswordResponse,
+  TemporaryPasswordRequest,
+  TemporaryPasswordResponse,
   UpdateUsernameRequest,
   UpdateUsernameResponse,
   UpdateUserRoleRequest,
@@ -20,7 +23,7 @@ export function health() {
 }
 
 export function register(payload: RegisterRequest) {
-  return postJson<UserProfile, RegisterRequest>("/api/auth/register", payload);
+  return postJson<RegisterResponse, RegisterRequest>("/api/auth/register", payload);
 }
 
 export function googleOAuthLoginUrl() {
@@ -29,6 +32,10 @@ export function googleOAuthLoginUrl() {
 
 export function resetPassword(payload: ResetPasswordRequest) {
   return postJson<ResetPasswordResponse, ResetPasswordRequest>("/api/auth/password/reset", payload);
+}
+
+export function completeTemporaryPassword(payload: TemporaryPasswordRequest) {
+  return postJson<TemporaryPasswordResponse, TemporaryPasswordRequest>("/api/auth/password/temporary", payload);
 }
 
 export function login(payload: LoginRequest) {

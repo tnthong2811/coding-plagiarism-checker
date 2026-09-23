@@ -1,5 +1,6 @@
 package com.plagiarism.auth.service;
 
+import com.plagiarism.auth.model.PasswordResetToken;
 import com.plagiarism.auth.model.User;
 import com.plagiarism.auth.model.UserRole;
 import com.plagiarism.auth.repository.PasswordResetTokenRepository;
@@ -12,9 +13,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
@@ -30,6 +32,68 @@ class UserServiceTest {
 
     @Autowired
     private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Test
+    void registerWithEmailVerificationCreatesResetRequiredUserAndSendsTemporaryPassword() {
+        AccountMailService mailService = mock(AccountMailService.class);
+        UserService userService = userService(mailService);
+
+        User user = userService.registerWithEmailVerification(
+                " student1 ",
+                " Student@One.Edu "
+        );
+
+        assertThat(user.getUsername()).isEqualTo("student1");
+        assertThat(user.getEmail()).isEqualTo("student@one.edu");
+        assertThat(user.getRole()).isEqualTo(UserRole.STUDENT.name());
+        assertThat(userService.isPasswordResetRequired(user)).isTrue();
+        assertThat(passwordResetTokenRepository.findAll()).isEmpty();
+
+        ArgumentCaptor<String> temporaryPasswordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mailService).sendRegistrationTemporaryPasswordEmail(
+                eq("student@one.edu"),
+                eq("student1"),
+                temporaryPasswordCaptor.capture()
+        );
+        assertThat(userService.checkPassword(user, temporaryPasswordCaptor.getValue())).isTrue();
+    }
+
+    @Test
+    void registerWithEmailVerificationRejectsDuplicateEmail() {
+        AccountMailService mailService = mock(AccountMailService.class);
+        UserService userService = userService(mailService);
+        userService.registerWithEmailVerification("student1", "student@example.edu");
+
+        assertThatThrownBy(() -> userService.registerWithEmailVerification("student2", " STUDENT@example.edu "))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("email already registered");
+    }
+
+    @Test
+    void completeTemporaryPasswordReplacesTemporaryPasswordAndClearsResetRequiredFlag() {
+        AccountMailService mailService = mock(AccountMailService.class);
+        UserService userService = userService(mailService);
+
+        User user = userService.registerWithEmailVerification("student1", "student@example.edu");
+        ArgumentCaptor<String> temporaryPasswordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mailService).sendRegistrationTemporaryPasswordEmail(
+                eq("student@example.edu"),
+                eq("student1"),
+                temporaryPasswordCaptor.capture()
+        );
+
+        User updated = userService.completeTemporaryPassword(
+                " student1 ",
+                temporaryPasswordCaptor.getValue(),
+                "new-secret"
+        );
+
+        assertThat(userService.isPasswordResetRequired(updated)).isFalse();
+        assertThat(userService.checkPassword(updated, "new-secret")).isTrue();
+        assertThat(userService.checkPassword(updated, temporaryPasswordCaptor.getValue())).isFalse();
+        assertThat(userRepository.findById(user.getId()))
+                .hasValueSatisfying(saved -> assertThat(saved.getPasswordResetRequired()).isFalse());
+    }
 
     @Test
     void googleOAuthRegistrationCreatesActiveUserWithoutResetEmail() {
@@ -72,12 +136,10 @@ class UserServiceTest {
         ArgumentCaptor<String> temporaryPasswordCaptor = ArgumentCaptor.forClass(String.class);
         verify(mailService).sendGoogleRegistrationEmail(
                 eq("student@gmail.com"),
-                temporaryPasswordCaptor.capture(),
-                anyString()
+                temporaryPasswordCaptor.capture()
         );
         assertThat(userService.isPasswordResetRequired(onboardingUser)).isTrue();
-        assertThat(passwordResetTokenRepository.findAll())
-                .anySatisfy(token -> assertThat(token.getConsumedAt()).isNull());
+        assertThat(passwordResetTokenRepository.findAll()).isEmpty();
 
         clearInvocations(mailService);
         GoogleOAuthRegistrationResult result = userService.registerGoogleOAuthEmail(" STUDENT@gmail.com ");
@@ -85,8 +147,7 @@ class UserServiceTest {
         assertThat(result.status()).isEqualTo(GoogleOAuthRegistrationResult.Status.EXISTING_USER);
         assertThat(userService.isPasswordResetRequired(result.user())).isFalse();
         assertThat(userService.checkPassword(result.user(), temporaryPasswordCaptor.getValue())).isFalse();
-        assertThat(passwordResetTokenRepository.findAll())
-                .allSatisfy(token -> assertThat(token.getConsumedAt()).isNotNull());
+        assertThat(passwordResetTokenRepository.findAll()).isEmpty();
         verifyNoInteractions(mailService);
     }
 
@@ -112,6 +173,23 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.updateUsername(first.getId(), "second"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("username exists");
+    }
+
+    @Test
+    void deleteByIdDeletesPasswordResetTokensBeforeDeletingUser() {
+        UserService userService = userService(mock(AccountMailService.class));
+        User user = userService.register("student1", "secret", UserRole.STUDENT);
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUser(user);
+        token.setTokenHash("test-token-hash");
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+        passwordResetTokenRepository.save(token);
+
+        User deleted = userService.deleteById(user.getId(), "admin");
+
+        assertThat(deleted.getUsername()).isEqualTo("student1");
+        assertThat(userRepository.findById(user.getId())).isEmpty();
+        assertThat(passwordResetTokenRepository.findAll()).isEmpty();
     }
 
     private UserService userService(AccountMailService mailService) {

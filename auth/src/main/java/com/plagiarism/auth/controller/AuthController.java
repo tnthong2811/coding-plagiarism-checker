@@ -33,11 +33,10 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
-        if (userService.findByUsername(req.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "username exists"));
-        }
-        User u = userService.register(req.getUsername(), req.getPassword(), UserRole.STUDENT);
-        return ResponseEntity.ok(Map.of("id", u.getId(), "username", u.getUsername(), "role", u.getRole()));
+        User u = userService.registerWithEmailVerification(req.getUsername(), req.getEmail());
+        Map<String, Object> response = userResponse(u);
+        response.put("message", "Account created. Check your email for the temporary password, then sign in to set a new password.");
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
@@ -47,7 +46,10 @@ public class AuthController {
                 .map(u -> {
                     if (userService.isPasswordResetRequired(u)) {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body(Map.of("error", "password reset required"));
+                                .body(Map.of(
+                                        "error", "password reset required",
+                                        "message", "Temporary password accepted. Choose a new password to continue."
+                                ));
                     }
                     String role = roleName(u);
                     String token = jwtUtil.generateToken(u.getUsername(), role);
@@ -62,6 +64,23 @@ public class AuthController {
         Map<String, Object> response = userResponse(user);
         response.put("message", "Password reset successfully. You can log in now.");
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/password/temporary")
+    public ResponseEntity<?> completeTemporaryPassword(@RequestBody TemporaryPasswordRequest req) {
+        User user = userService.completeTemporaryPassword(
+                req.getUsername(),
+                req.getTemporaryPassword(),
+                req.getPassword()
+        );
+        String role = roleName(user);
+        String token = jwtUtil.generateToken(user.getUsername(), role);
+        return ResponseEntity.ok(Map.of(
+                "token", token,
+                "role", role,
+                "username", user.getUsername(),
+                "message", "Password updated successfully."
+        ));
     }
 
     @GetMapping("/me")
@@ -200,13 +219,20 @@ public class AuthController {
 
     @Data
     static class RegisterRequest {
+        private String email;
         private String username;
-        private String password;
     }
 
     @Data
     static class ResetPasswordRequest {
         private String token;
+        private String password;
+    }
+
+    @Data
+    static class TemporaryPasswordRequest {
+        private String username;
+        private String temporaryPassword;
         private String password;
     }
 

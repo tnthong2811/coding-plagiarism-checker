@@ -17,6 +17,19 @@ export function canManageSystemAdmin(role?: UserRole | null) {
   return role === "SYSTEM_ADMIN";
 }
 
+export function defaultRouteForRole(role: UserRole) {
+  if (canAccessUserAdmin(role)) {
+    return "/admin";
+  }
+  if (canAccessReview(role)) {
+    return "/teacher/submissions/history";
+  }
+  if (role === "STUDENT") {
+    return "/submissions/upload";
+  }
+  return "/dashboard";
+}
+
 export function roleBadgeClass(role: UserRole) {
   return `role-badge role-badge--${role.toLowerCase()}`;
 }

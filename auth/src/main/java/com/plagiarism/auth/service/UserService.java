@@ -68,6 +68,34 @@ public class UserService {
     }
 
     @Transactional
+    public User registerWithEmailVerification(String username, String email) {
+        String normalizedUsername = normalizeUsername(username);
+        String normalizedEmail = normalizeEmail(email);
+
+        if (userRepository.findByUsername(normalizedUsername).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "username exists");
+        }
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "email already registered");
+        }
+
+        String temporaryPassword = generateSecret(TEMPORARY_PASSWORD_BYTES);
+        User user = new User();
+        user.setUsername(normalizedUsername);
+        user.setEmail(normalizedEmail);
+        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setRole(UserRole.STUDENT.name());
+        user.setPasswordResetRequired(true);
+        User saved = userRepository.save(user);
+        accountMailService.sendRegistrationTemporaryPasswordEmail(
+                saved.getEmail(),
+                saved.getUsername(),
+                temporaryPassword
+        );
+        return saved;
+    }
+
+    @Transactional
     public User registerGoogleEmail(String email) {
         String normalizedEmail = normalizeEmail(email);
         if (userRepository.findByUsername(normalizedEmail).isPresent()
@@ -183,12 +211,34 @@ public class UserService {
     }
 
     @Transactional
+    public User completeTemporaryPassword(String username, String temporaryPassword, String rawPassword) {
+        String normalizedUsername = normalizeUsername(username);
+        String normalizedTemporaryPassword = normalizeRequired(temporaryPassword, "temporary password is required");
+        String normalizedPassword = normalizePassword(rawPassword);
+
+        User user = userRepository.findByUsername(normalizedUsername)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid credentials"));
+        if (!isPasswordResetRequired(user)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "password reset is not required");
+        }
+        if (!passwordEncoder.matches(normalizedTemporaryPassword, user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid credentials");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(normalizedPassword));
+        user.setPasswordResetRequired(false);
+        consumeOutstandingPasswordResetTokens(user);
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public User deleteById(Long id, String currentUsername) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
         if (user.getUsername().equals(currentUsername)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cannot delete your own account");
         }
+        passwordResetTokenRepository.deleteByUser(user);
         userRepository.delete(user);
         return user;
     }
@@ -209,6 +259,14 @@ public class UserService {
         return normalized;
     }
 
+    private String normalizePassword(String password) {
+        String normalized = normalizeRequired(password, "password is required");
+        if (normalized.length() < 6) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "password must be at least 6 characters");
+        }
+        return normalized;
+    }
+
     private String normalizeRequired(String value, String message) {
         if (value == null || value.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
@@ -224,8 +282,6 @@ public class UserService {
 
     private User issueGoogleOnboardingEmail(User user) {
         String temporaryPassword = generateSecret(TEMPORARY_PASSWORD_BYTES);
-        String resetToken = generateSecret(RESET_TOKEN_BYTES);
-        LocalDateTime now = LocalDateTime.now();
 
         if (user.getId() != null) {
             consumeOutstandingPasswordResetTokens(user);
@@ -235,16 +291,9 @@ public class UserService {
         user.setPasswordResetRequired(true);
         User saved = userRepository.save(user);
 
-        PasswordResetToken passwordResetToken = new PasswordResetToken();
-        passwordResetToken.setUser(saved);
-        passwordResetToken.setTokenHash(hashToken(resetToken));
-        passwordResetToken.setExpiresAt(now.plusMinutes(resetTokenExpirationMinutes));
-        passwordResetTokenRepository.save(passwordResetToken);
-
         accountMailService.sendGoogleRegistrationEmail(
                 saved.getEmail(),
-                temporaryPassword,
-                passwordResetLink(resetToken)
+                temporaryPassword
         );
         return saved;
     }

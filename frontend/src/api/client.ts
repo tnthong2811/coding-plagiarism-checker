@@ -1,5 +1,18 @@
 const API_BASE = import.meta.env.VITE_AUTH_API_BASE || "";
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly statusText: string,
+    readonly url: string,
+    readonly responseBody: unknown
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
   const headers = new Headers(init?.headers);
@@ -31,7 +44,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       statusText: response.statusText,
       responseBody: text
     });
-    throw new Error(message);
+    throw new ApiError(message, response.status, response.statusText, url, data ?? text);
   }
 
   return data as T;

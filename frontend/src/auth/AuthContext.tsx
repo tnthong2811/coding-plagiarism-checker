@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
+  completeTemporaryPassword as completeTemporaryPasswordApi,
   login as loginApi,
   me as meApi,
   register as registerApi,
   updateMyUsername as updateMyUsernameApi
 } from "../api/authApi";
-import type { LoginRequest, RegisterRequest, UserProfile } from "../types/auth";
+import type { LoginRequest, RegisterRequest, TemporaryPasswordRequest, UserProfile } from "../types/auth";
 
 interface AuthContextValue {
   token: string | null;
@@ -13,8 +14,9 @@ interface AuthContextValue {
   loading: boolean;
   login: (payload: LoginRequest) => Promise<UserProfile>;
   completeOAuthLogin: (token: string) => Promise<UserProfile>;
+  completeTemporaryPassword: (payload: TemporaryPasswordRequest) => Promise<UserProfile>;
   updateUsername: (username: string) => Promise<UserProfile>;
-  register: (payload: RegisterRequest) => Promise<void>;
+  register: (payload: RegisterRequest) => Promise<string>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 }
@@ -81,6 +83,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return completeOAuthLogin(response.token);
   }, [completeOAuthLogin]);
 
+  const completeTemporaryPassword = useCallback(async (payload: TemporaryPasswordRequest) => {
+    const response = await completeTemporaryPasswordApi(payload);
+    return completeOAuthLogin(response.token);
+  }, [completeOAuthLogin]);
+
   const updateUsername = useCallback(async (username: string) => {
     if (!token) {
       throw new Error("Not authenticated");
@@ -93,7 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   async function register(payload: RegisterRequest) {
-    await registerApi(payload);
+    const response = await registerApi(payload);
+    return response.message;
   }
 
   function logout() {
@@ -112,8 +120,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const value = useMemo<AuthContextValue>(
-    () => ({ token, user, loading, login, completeOAuthLogin, updateUsername, register, logout, refreshMe }),
-    [token, user, loading, login, completeOAuthLogin, updateUsername]
+    () => ({
+      token,
+      user,
+      loading,
+      login,
+      completeOAuthLogin,
+      completeTemporaryPassword,
+      updateUsername,
+      register,
+      logout,
+      refreshMe
+    }),
+    [token, user, loading, login, completeOAuthLogin, completeTemporaryPassword, updateUsername]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
