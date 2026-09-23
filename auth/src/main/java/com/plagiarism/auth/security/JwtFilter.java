@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -39,22 +40,32 @@ public class JwtFilter extends OncePerRequestFilter {
             Claims claims = jwtUtil.validateAndGetClaims(token);
             String subject = claims == null ? null : claims.getSubject();
             String role = claims == null ? null : claims.get("role", String.class);
-            if (subject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (subject != null) {
+                Optional<com.plagiarism.auth.model.User> user = userRepository.findByUsername(subject);
+                if (user.isEmpty()) {
+                    SecurityContextHolder.clearContext();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 List<SimpleGrantedAuthority> authorities =
-                        List.of(new SimpleGrantedAuthority("ROLE_" + resolveRole(subject, role)));
+                        List.of(new SimpleGrantedAuthority("ROLE_" + resolveRole(user.get(), role)));
                 UserDetails ud = User.withUsername(subject).password("").authorities(authorities).build();
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
+            } else {
+                SecurityContextHolder.clearContext();
             }
         }
         filterChain.doFilter(request, response);
     }
 
-    private String resolveRole(String username, String tokenRole) {
-        return userRepository.findByUsername(username)
-                .map(user -> normalizeRole(user.getRole()))
-                .orElseGet(() -> normalizeRole(tokenRole));
+    private String resolveRole(com.plagiarism.auth.model.User user, String tokenRole) {
+        String role = user.getRole();
+        if (role == null || role.isBlank()) {
+            role = tokenRole;
+        }
+        return normalizeRole(role);
     }
 
     private String normalizeRole(String role) {
