@@ -29,15 +29,18 @@ public class SubmissionService {
     private final MinioProperties minioProperties;
     private final SubmissionRepository submissionRepository;
     private final AssignmentRepository assignmentRepository;
+    private final SubmissionEventPublisher submissionEventPublisher;
 
     public SubmissionService(MinioClient minioClient,
                              MinioProperties minioProperties,
                              SubmissionRepository submissionRepository,
-                             AssignmentRepository assignmentRepository) {
+                             AssignmentRepository assignmentRepository,
+                             SubmissionEventPublisher submissionEventPublisher) {
         this.minioClient = minioClient;
         this.minioProperties = minioProperties;
         this.submissionRepository = submissionRepository;
         this.assignmentRepository = assignmentRepository;
+        this.submissionEventPublisher = submissionEventPublisher;
     }
 
     public Submission upload(String submittedBy, Long assignmentId, MultipartFile file) {
@@ -92,7 +95,12 @@ public class SubmissionService {
         submission.setFileSize(file.getSize());
         submission.setStatus("UPLOADED");
 
-        return submissionRepository.save(submission);
+        Submission saved = submissionRepository.save(submission);
+        submissionEventPublisher.publishSubmissionUploaded(
+                assignment,
+                submissionRepository.findByAssignment_IdOrderByCreatedAtDesc(assignmentId)
+        );
+        return saved;
     }
 
     public List<Submission> getMySubmissions(String username) {

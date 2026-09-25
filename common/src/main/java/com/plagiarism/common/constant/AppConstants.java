@@ -20,6 +20,7 @@ public class AppConstants {
     public static final String SUBMISSION_QUEUE = "submission.queue";
     public static final String ANALYSIS_QUEUE = "analysis.queue";
     public static final String EXCHANGE_NAME = "plagiarism.exchange";
+    public static final String SUBMISSION_UPLOADED_ROUTING_KEY = "submission.uploaded";
 
     // MinIO
     public static final String MINIO_BUCKET_SUBMISSIONS = "submissions";
