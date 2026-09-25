@@ -107,6 +107,14 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/me/avatar")
+    public ResponseEntity<?> updateMyAvatar(@RequestBody UpdateAvatarRequest req, Authentication authentication) {
+        User currentUser = authenticatedUser(authentication)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized"));
+        User updatedUser = userService.updateAvatarUrl(currentUser.getId(), req.getAvatarUrl());
+        return ResponseEntity.ok(userResponse(updatedUser));
+    }
+
     @PostMapping("/admin/users")
     @PreAuthorize("hasAnyRole('BUSINESS_ADMIN','SYSTEM_ADMIN')")
     public ResponseEntity<?> createByAdmin(@RequestBody CreateUserRequest req, Authentication authentication) {
@@ -157,6 +165,7 @@ public class AuthController {
         response.put("id", user.getId());
         response.put("username", user.getUsername());
         response.put("email", user.getEmail());
+        response.put("avatarUrl", user.getAvatarUrl());
         response.put("role", roleName(user));
         response.put("passwordResetRequired", userService.isPasswordResetRequired(user));
         return response;
@@ -245,6 +254,11 @@ public class AuthController {
     @Data
     static class UpdateUsernameRequest {
         private String username;
+    }
+
+    @Data
+    static class UpdateAvatarRequest {
+        private String avatarUrl;
     }
 
     @Data

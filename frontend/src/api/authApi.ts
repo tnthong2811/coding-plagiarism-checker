@@ -10,6 +10,7 @@ import type {
   ResetPasswordResponse,
   TemporaryPasswordRequest,
   TemporaryPasswordResponse,
+  UpdateAvatarRequest,
   UpdateUsernameRequest,
   UpdateUsernameResponse,
   UpdateUserRoleRequest,
@@ -48,6 +49,10 @@ export function me(token: string) {
 
 export function updateMyUsername(token: string, payload: UpdateUsernameRequest) {
   return postJson<UpdateUsernameResponse, UpdateUsernameRequest>("/api/auth/me/username", payload, token);
+}
+
+export function updateMyAvatar(token: string, payload: UpdateAvatarRequest) {
+  return postJson<UserProfile, UpdateAvatarRequest>("/api/auth/me/avatar", payload, token);
 }
 
 export function createUserByAdmin(token: string, payload: CreateUserRequest) {

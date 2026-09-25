@@ -4,6 +4,7 @@ export interface UserProfile {
   id: number;
   username: string;
   email?: string | null;
+  avatarUrl?: string | null;
   role: UserRole;
   passwordResetRequired?: boolean;
 }
@@ -56,6 +57,10 @@ export interface UpdateUsernameResponse {
   user: UserProfile;
 }
 
+export interface UpdateAvatarRequest {
+  avatarUrl?: string | null;
+}
+
 export interface CreateUserRequest {
   username: string;
   password: string;
@@ -66,6 +71,7 @@ export interface AdminUser {
   id: number;
   username: string;
   email?: string | null;
+  avatarUrl?: string | null;
   role: UserRole;
   passwordResetRequired?: boolean;
 }

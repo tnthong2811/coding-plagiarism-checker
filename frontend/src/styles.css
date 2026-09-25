@@ -423,11 +423,19 @@ a {
   background: #f59e0b;
   color: #111827;
   font-weight: 900;
+  overflow: hidden;
 }
 
 .avatar {
   width: 2.4rem;
   height: 2.4rem;
+}
+
+.avatar img,
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sidebar-user strong,
@@ -912,6 +920,11 @@ input[type="checkbox"] {
   font-size: 1.6rem;
 }
 
+.profile-avatar--preview {
+  width: 6.5rem;
+  height: 6.5rem;
+}
+
 .profile-card h2 {
   margin: 0;
   color: #111827;
@@ -926,6 +939,26 @@ input[type="checkbox"] {
 
 .profile-action {
   margin-top: 1rem;
+}
+
+.avatar-editor {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.45fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.avatar-editor__preview {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar-editor__preview h2 {
+  margin: 0.2rem 0 0;
+  color: #111827;
+  font-size: 1.45rem;
+  line-height: 1.2;
 }
 
 .role-badge,
@@ -1409,6 +1442,7 @@ pre {
   .role-path-grid,
   .workflow-band,
   .auth-page,
+  .avatar-editor,
   .profile-grid,
   .two-column-grid,
   .admin-grid,

@@ -4,6 +4,7 @@ import {
   login as loginApi,
   me as meApi,
   register as registerApi,
+  updateMyAvatar as updateMyAvatarApi,
   updateMyUsername as updateMyUsernameApi
 } from "../api/authApi";
 import type { LoginRequest, RegisterRequest, TemporaryPasswordRequest, UserProfile } from "../types/auth";
@@ -16,6 +17,7 @@ interface AuthContextValue {
   completeOAuthLogin: (token: string) => Promise<UserProfile>;
   completeTemporaryPassword: (payload: TemporaryPasswordRequest) => Promise<UserProfile>;
   updateUsername: (username: string) => Promise<UserProfile>;
+  updateAvatar: (avatarUrl: string | null) => Promise<UserProfile>;
   register: (payload: RegisterRequest) => Promise<string>;
   logout: () => void;
   refreshMe: () => Promise<void>;
@@ -99,6 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   }, [token]);
 
+  const updateAvatar = useCallback(async (avatarUrl: string | null) => {
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+    const profile = await updateMyAvatarApi(token, { avatarUrl });
+    setUser(profile);
+    return profile;
+  }, [token]);
+
   async function register(payload: RegisterRequest) {
     const response = await registerApi(payload);
     return response.message;
@@ -128,11 +139,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       completeOAuthLogin,
       completeTemporaryPassword,
       updateUsername,
+      updateAvatar,
       register,
       logout,
       refreshMe
     }),
-    [token, user, loading, login, completeOAuthLogin, completeTemporaryPassword, updateUsername]
+    [token, user, loading, login, completeOAuthLogin, completeTemporaryPassword, updateUsername, updateAvatar]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

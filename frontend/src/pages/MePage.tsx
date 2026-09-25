@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import type { UserRole } from "../types/auth";
+
+const MAX_AVATAR_FILE_SIZE = 1024 * 1024;
+const ACCEPTED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 
 const roleDetails: Record<UserRole, { eyebrow: string; title: string; body: string; action: string; to: string }> = {
   STUDENT: {
@@ -35,9 +38,15 @@ const roleDetails: Record<UserRole, { eyebrow: string; title: string; body: stri
 };
 
 export function MePage() {
-  const { user, refreshMe } = useAuth();
+  const { user, refreshMe, updateAvatar } = useAuth();
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+
+  useEffect(() => {
+    setAvatarUrl(user?.avatarUrl ?? "");
+  }, [user?.avatarUrl]);
 
   async function handleRefresh() {
     try {
@@ -50,8 +59,77 @@ export function MePage() {
     }
   }
 
+  function handleAvatarFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+      setError("Avatar must be a PNG, JPEG, GIF, or WebP image.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_FILE_SIZE) {
+      setError("Avatar image must be 1 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setAvatarUrl(reader.result);
+      } else {
+        setError("Failed to read avatar image.");
+      }
+    };
+    reader.onerror = () => setError("Failed to read avatar image.");
+    reader.readAsDataURL(file);
+  }
+
+  async function handleAvatarSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setSavingAvatar(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const updated = await updateAvatar(avatarUrl.trim() || null);
+      setAvatarUrl(updated.avatarUrl ?? "");
+      setMessage("Avatar updated.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update avatar");
+    } finally {
+      setSavingAvatar(false);
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    setSavingAvatar(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      await updateAvatar(null);
+      setAvatarUrl("");
+      setMessage("Avatar removed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove avatar");
+    } finally {
+      setSavingAvatar(false);
+    }
+  }
+
   const role = user?.role ?? "STUDENT";
   const details = roleDetails[role];
+  const initials = user?.username?.slice(0, 2).toUpperCase() ?? "US";
+  const previewAvatarUrl = avatarUrl.trim();
 
   return (
     <div className="page-stack">
@@ -71,7 +149,9 @@ export function MePage() {
 
       <section className="profile-grid">
         <article className="profile-card">
-          <span className="profile-avatar">{user?.username?.slice(0, 2).toUpperCase() ?? "US"}</span>
+          <span className="profile-avatar">
+            {user?.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initials}
+          </span>
           <div>
             <h2>{user?.username ?? "Unknown user"}</h2>
             <p>{user?.role ?? "No role loaded"}</p>
@@ -89,6 +169,50 @@ export function MePage() {
             {details.action}
           </Link>
         </article>
+      </section>
+
+      <section className="panel avatar-editor">
+        <div className="avatar-editor__preview">
+          <span className="profile-avatar profile-avatar--preview">
+            {previewAvatarUrl ? <img src={previewAvatarUrl} alt="" /> : initials}
+          </span>
+          <div>
+            <p className="eyebrow">Avatar</p>
+            <h2>Profile photo</h2>
+          </div>
+        </div>
+        <form className="stacked-form" onSubmit={handleAvatarSubmit}>
+          <label>
+            Image URL
+            <input
+              type="url"
+              value={avatarUrl.startsWith("data:image/") ? "" : avatarUrl}
+              onChange={(event) => setAvatarUrl(event.target.value)}
+              placeholder="https://example.com/avatar.png"
+            />
+          </label>
+          <label>
+            Upload image
+            <input
+              type="file"
+              accept={ACCEPTED_AVATAR_TYPES.join(",")}
+              onChange={handleAvatarFileChange}
+            />
+          </label>
+          <div className="panel-actions">
+            <button
+              className="button button-subtle"
+              type="button"
+              onClick={handleRemoveAvatar}
+              disabled={savingAvatar || (!user?.avatarUrl && !avatarUrl.trim())}
+            >
+              Remove avatar
+            </button>
+            <button className="button button-primary" type="submit" disabled={savingAvatar}>
+              {savingAvatar ? "Saving..." : "Save avatar"}
+            </button>
+          </div>
+        </form>
       </section>
     </div>
   );

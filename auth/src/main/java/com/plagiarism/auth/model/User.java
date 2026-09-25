@@ -26,6 +26,9 @@ public class User {
     @Column(nullable = false)
     private String role = UserRole.STUDENT.name();
 
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
+    private String avatarUrl;
+
     private Boolean passwordResetRequired = false;
 }
 

@@ -176,6 +176,39 @@ class UserServiceTest {
     }
 
     @Test
+    void updateAvatarUrlAcceptsRemoteAndDataImageUrls() {
+        UserService userService = userService(mock(AccountMailService.class));
+        User user = userService.register("student1", "secret", UserRole.STUDENT);
+
+        User remoteAvatarUser = userService.updateAvatarUrl(user.getId(), " https://example.com/avatar.png ");
+        assertThat(remoteAvatarUser.getAvatarUrl()).isEqualTo("https://example.com/avatar.png");
+
+        User dataAvatarUser = userService.updateAvatarUrl(user.getId(), "data:image/png;base64,aGVsbG8=");
+        assertThat(dataAvatarUser.getAvatarUrl()).isEqualTo("data:image/png;base64,aGVsbG8=");
+    }
+
+    @Test
+    void updateAvatarUrlClearsBlankValue() {
+        UserService userService = userService(mock(AccountMailService.class));
+        User user = userService.register("student1", "secret", UserRole.STUDENT);
+        userService.updateAvatarUrl(user.getId(), "https://example.com/avatar.png");
+
+        User updated = userService.updateAvatarUrl(user.getId(), " ");
+
+        assertThat(updated.getAvatarUrl()).isNull();
+    }
+
+    @Test
+    void updateAvatarUrlRejectsUnsafeScheme() {
+        UserService userService = userService(mock(AccountMailService.class));
+        User user = userService.register("student1", "secret", UserRole.STUDENT);
+
+        assertThatThrownBy(() -> userService.updateAvatarUrl(user.getId(), "javascript:alert(1)"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("avatar URL must be http or https");
+    }
+
+    @Test
     void deleteByIdDeletesPasswordResetTokensBeforeDeletingUser() {
         UserService userService = userService(mock(AccountMailService.class));
         User user = userService.register("student1", "secret", UserRole.STUDENT);

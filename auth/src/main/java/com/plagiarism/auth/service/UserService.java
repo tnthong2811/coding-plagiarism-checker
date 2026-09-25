@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -28,8 +29,14 @@ import java.util.regex.Pattern;
 public class UserService {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+    private static final Pattern DATA_IMAGE_PATTERN = Pattern.compile(
+            "^data:image/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$",
+            Pattern.CASE_INSENSITIVE
+    );
     private static final int TEMPORARY_PASSWORD_BYTES = 12;
     private static final int RESET_TOKEN_BYTES = 32;
+    private static final int MAX_AVATAR_URL_LENGTH = 1_400_000;
+    private static final int MAX_REMOTE_AVATAR_URL_LENGTH = 2_048;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
@@ -188,6 +195,15 @@ public class UserService {
     }
 
     @Transactional
+    public User updateAvatarUrl(Long id, String avatarUrl) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
+
+        user.setAvatarUrl(normalizeAvatarUrl(avatarUrl));
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public User resetPassword(String token, String rawPassword) {
         String normalizedToken = normalizeRequired(token, "reset token is required");
         String normalizedPassword = normalizeRequired(rawPassword, "password is required");
@@ -264,6 +280,44 @@ public class UserService {
         if (normalized.length() < 6) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "password must be at least 6 characters");
         }
+        return normalized;
+    }
+
+    private String normalizeAvatarUrl(String avatarUrl) {
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            return null;
+        }
+
+        String normalized = avatarUrl.trim();
+        if (normalized.length() > MAX_AVATAR_URL_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "avatar image is too large");
+        }
+
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("data:image/")) {
+            if (!DATA_IMAGE_PATTERN.matcher(normalized).matches()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "avatar image format is not supported");
+            }
+            return normalized;
+        }
+
+        if (normalized.length() > MAX_REMOTE_AVATAR_URL_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "avatar URL is too long");
+        }
+
+        URI uri;
+        try {
+            uri = URI.create(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "avatar URL is invalid");
+        }
+
+        String scheme = uri.getScheme();
+        if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))
+                || uri.getHost() == null || uri.getHost().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "avatar URL must be http or https");
+        }
+
         return normalized;
     }
 

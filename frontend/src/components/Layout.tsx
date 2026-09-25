@@ -4,6 +4,7 @@ import { canAccessReview, canAccessUserAdmin } from "../auth/roles";
 
 export function Layout() {
   const { user, logout } = useAuth();
+  const initials = user?.username?.slice(0, 2).toUpperCase() ?? "US";
   const navItems = [
     { to: "/dashboard", label: "Dashboard", short: "DB", end: true },
     { to: "/me", label: "My Profile", short: "ME", end: false },
@@ -39,7 +40,9 @@ export function Layout() {
         </Link>
 
         <div className="sidebar-user">
-          <span className="avatar">{user?.username?.slice(0, 2).toUpperCase() ?? "US"}</span>
+          <span className="avatar">
+            {user?.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initials}
+          </span>
           <span>
             <strong>{user?.username ?? "User"}</strong>
             <small>{user?.role ?? "Authenticated"}</small>
