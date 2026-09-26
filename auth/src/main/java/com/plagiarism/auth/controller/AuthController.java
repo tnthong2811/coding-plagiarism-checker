@@ -58,6 +58,15 @@ public class AuthController {
                 .orElseGet(() -> ResponseEntity.status(401).body(Map.of("error", "invalid credentials")));
     }
 
+    @PostMapping("/password/forgot")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest req) {
+        userService.requestTemporaryPasswordReset(req.getIdentifier());
+        return ResponseEntity.ok(Map.of(
+                "message",
+                "If the account exists and has an email address, a temporary password has been sent."
+        ));
+    }
+
     @PostMapping("/password/reset")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest req) {
         User user = userService.resetPassword(req.getToken(), req.getPassword());
@@ -236,6 +245,11 @@ public class AuthController {
     static class ResetPasswordRequest {
         private String token;
         private String password;
+    }
+
+    @Data
+    static class ForgotPasswordRequest {
+        private String identifier;
     }
 
     @Data

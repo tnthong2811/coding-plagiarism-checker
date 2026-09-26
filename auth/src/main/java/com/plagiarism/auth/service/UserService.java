@@ -204,6 +204,32 @@ public class UserService {
     }
 
     @Transactional
+    public void requestTemporaryPasswordReset(String identifier) {
+        String normalizedIdentifier = normalizeRequired(identifier, "email or username is required");
+        Optional<User> userToReset = findResetCandidate(normalizedIdentifier);
+        if (userToReset.isEmpty()) {
+            return;
+        }
+
+        User user = userToReset.get();
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            return;
+        }
+
+        String temporaryPassword = generateSecret(TEMPORARY_PASSWORD_BYTES);
+        consumeOutstandingPasswordResetTokens(user);
+        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setPasswordResetRequired(true);
+        User saved = userRepository.save(user);
+
+        accountMailService.sendPasswordResetTemporaryPasswordEmail(
+                saved.getEmail(),
+                saved.getUsername(),
+                temporaryPassword
+        );
+    }
+
+    @Transactional
     public User resetPassword(String token, String rawPassword) {
         String normalizedToken = normalizeRequired(token, "reset token is required");
         String normalizedPassword = normalizeRequired(rawPassword, "password is required");
@@ -319,6 +345,14 @@ public class UserService {
         }
 
         return normalized;
+    }
+
+    private Optional<User> findResetCandidate(String identifier) {
+        String normalized = identifier.trim();
+        Optional<User> byEmail = EMAIL_PATTERN.matcher(normalized).matches()
+                ? userRepository.findByEmailIgnoreCase(normalized.toLowerCase(Locale.ROOT))
+                : Optional.empty();
+        return byEmail.or(() -> userRepository.findByUsername(normalized));
     }
 
     private String normalizeRequired(String value, String message) {

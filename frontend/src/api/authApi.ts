@@ -2,6 +2,8 @@ import { deleteJson, getJson, postJson } from "./client";
 import type {
   AdminUser,
   CreateUserRequest,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
@@ -29,6 +31,10 @@ export function register(payload: RegisterRequest) {
 
 export function googleOAuthLoginUrl() {
   return `${AUTH_BASE}/oauth2/authorization/google`;
+}
+
+export function forgotPassword(payload: ForgotPasswordRequest) {
+  return postJson<ForgotPasswordResponse, ForgotPasswordRequest>("/api/auth/password/forgot", payload);
 }
 
 export function resetPassword(payload: ResetPasswordRequest) {

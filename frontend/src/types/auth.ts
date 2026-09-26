@@ -32,6 +32,14 @@ export interface ResetPasswordResponse extends UserProfile {
   message: string;
 }
 
+export interface ForgotPasswordRequest {
+  identifier: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
 export interface TemporaryPasswordRequest {
   username: string;
   temporaryPassword: string;

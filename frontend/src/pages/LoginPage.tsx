@@ -87,7 +87,7 @@ export function LoginPage() {
           No account? <Link to="/register">Register as student</Link>
         </p>
         <p className="auth-switch">
-          Have a reset link? <Link to="/reset-password">Set a new password</Link>
+          Forgot password? <Link to="/reset-password">Send a temporary password</Link>
         </p>
       </section>
     </main>

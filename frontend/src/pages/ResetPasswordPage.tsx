@@ -1,6 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { resetPassword } from "../api/authApi";
+import { forgotPassword } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import { defaultRouteForRole } from "../auth/roles";
 import heroImage from "../assets/hero-analysis-workspace.png";
@@ -19,10 +19,9 @@ export function ResetPasswordPage() {
   }, [location.search]);
   const temporaryMode = params.get("mode") === "temporary";
   const locationState = location.state as ResetPasswordLocationState | null;
-  const initialToken = temporaryMode ? "" : params.get("token") ?? "";
   const initialUsername = locationState?.username ?? params.get("username") ?? "";
   const initialTemporaryPassword = locationState?.temporaryPassword ?? "";
-  const [token, setToken] = useState(initialToken);
+  const [identifier, setIdentifier] = useState(initialUsername);
   const [username, setUsername] = useState(initialUsername);
   const [temporaryPassword, setTemporaryPassword] = useState(initialTemporaryPassword);
   const [password, setPassword] = useState("");
@@ -36,6 +35,19 @@ export function ResetPasswordPage() {
     setMessage(null);
     setError(null);
 
+    if (!temporaryMode) {
+      setSubmitting(true);
+      try {
+        const response = await forgotPassword({ identifier });
+        setMessage(response.message);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to request password reset");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -48,10 +60,6 @@ export function ResetPasswordPage() {
         navigate(defaultRouteForRole(profile.role), { replace: true });
         return;
       }
-
-      const response = await resetPassword({ token, password });
-      setMessage(response.message);
-      setTimeout(() => navigate("/login"), 900);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Password update failed");
     } finally {
@@ -71,16 +79,16 @@ export function ResetPasswordPage() {
         </Link>
         <div>
           <p className="eyebrow">Account security</p>
-          <h1>Set your account password.</h1>
-          <p>{temporaryMode ? "Replace your temporary password before opening the workspace." : "Use the reset link from your email to set a new password."}</p>
+          <h1>{temporaryMode ? "Set your account password." : "Recover your account."}</h1>
+          <p>{temporaryMode ? "Replace your temporary password before opening the workspace." : "Request a new temporary password by email, then sign in and choose a permanent password."}</p>
         </div>
       </section>
 
       <section className="auth-card">
         <div className="auth-card__header">
-          <p className="eyebrow">{temporaryMode ? "First login" : "Reset password"}</p>
-          <h2>Choose a new password</h2>
-          <p>{temporaryMode ? "Enter the temporary password from your email, then choose your permanent password." : "The link is single-use and expires after the configured reset window."}</p>
+          <p className="eyebrow">{temporaryMode ? "Temporary password" : "Forgot password"}</p>
+          <h2>{temporaryMode ? "Choose a new password" : "Send a temporary password"}</h2>
+          <p>{temporaryMode ? "Enter the temporary password from your email, then choose and confirm your permanent password." : "Enter your email or username. If the account has an email address, a new temporary password will be sent."}</p>
         </div>
         <form onSubmit={handleSubmit}>
           {temporaryMode ? (
@@ -101,38 +109,42 @@ export function ResetPasswordPage() {
             </>
           ) : (
             <label>
-              Reset token
-              <input value={token} onChange={(e) => setToken(e.target.value)} required />
+              Email or username
+              <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
             </label>
           )}
-          <label>
-            New password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
-          </label>
-          <label>
-            Confirm password
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={6}
-            />
-          </label>
+          {temporaryMode && (
+            <>
+              <label>
+                New password
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </label>
+              <label>
+                Confirm password
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </label>
+            </>
+          )}
           {message && <p className="alert alert-success">{message}</p>}
           {error && <p className="alert alert-error">{error}</p>}
           <button className="button button-primary" type="submit" disabled={submitting}>
-            {submitting ? "Updating..." : "Update password"}
+            {submitting ? (temporaryMode ? "Updating..." : "Sending...") : (temporaryMode ? "Update password" : "Send temporary password")}
           </button>
         </form>
         <p className="auth-switch">
-          {temporaryMode ? "Use a different account?" : "Already reset?"} <Link to="/login">Login</Link>
+          {temporaryMode ? "Use a different account?" : "Already have the temporary password?"} <Link to="/login">Login</Link>
         </p>
       </section>
     </main>

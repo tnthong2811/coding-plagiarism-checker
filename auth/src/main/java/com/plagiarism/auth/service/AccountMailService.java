@@ -78,6 +78,22 @@ public class AccountMailService {
         sendEmail(email, subject, body, "Registration temporary password: " + temporaryPassword);
     }
 
+    public void sendPasswordResetTemporaryPasswordEmail(String email, String username, String temporaryPassword) {
+        String subject = "Your CodeProof password reset";
+        String body = """
+                A password reset was requested for your CodeProof account.
+
+                Username: %s
+                Temporary password: %s
+
+                Sign in with this temporary password. You will be asked to choose and confirm a new password immediately.
+
+                If you did not request this reset, contact your administrator.
+                """.formatted(username, temporaryPassword);
+
+        sendEmail(email, subject, body, "Password reset temporary password: " + temporaryPassword);
+    }
+
     private void sendEmail(String email, String subject, String body, String disabledLogDetail) {
         if (!mailEnabled) {
             LOGGER.warn("Mail disabled. {} for {}", disabledLogDetail, email);

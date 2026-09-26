@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -209,6 +210,47 @@ class UserServiceTest {
     }
 
     @Test
+    void requestTemporaryPasswordResetSendsTemporaryPasswordAndRequiresPasswordChange() {
+        AccountMailService mailService = mock(AccountMailService.class);
+        UserService userService = userService(mailService);
+        User user = userService.registerWithEmailVerification("student1", "student@example.edu");
+        userService.completeTemporaryPassword(
+                "student1",
+                captureRegistrationTemporaryPassword(mailService),
+                "old-secret"
+        );
+        clearInvocations(mailService);
+
+        userService.requestTemporaryPasswordReset(" STUDENT@example.edu ");
+
+        User updated = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(userService.isPasswordResetRequired(updated)).isTrue();
+        assertThat(userService.checkPassword(updated, "old-secret")).isFalse();
+
+        ArgumentCaptor<String> temporaryPasswordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mailService).sendPasswordResetTemporaryPasswordEmail(
+                eq("student@example.edu"),
+                eq("student1"),
+                temporaryPasswordCaptor.capture()
+        );
+        assertThat(userService.checkPassword(updated, temporaryPasswordCaptor.getValue())).isTrue();
+    }
+
+    @Test
+    void requestTemporaryPasswordResetIgnoresUnknownAccount() {
+        AccountMailService mailService = mock(AccountMailService.class);
+        UserService userService = userService(mailService);
+
+        userService.requestTemporaryPasswordReset("missing@example.edu");
+
+        verify(mailService, never()).sendPasswordResetTemporaryPasswordEmail(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString()
+        );
+    }
+
+    @Test
     void deleteByIdDeletesPasswordResetTokensBeforeDeletingUser() {
         UserService userService = userService(mock(AccountMailService.class));
         User user = userService.register("student1", "secret", UserRole.STUDENT);
@@ -234,5 +276,15 @@ class UserServiceTest {
                 "http://localhost:5173",
                 30
         );
+    }
+
+    private String captureRegistrationTemporaryPassword(AccountMailService mailService) {
+        ArgumentCaptor<String> temporaryPasswordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mailService).sendRegistrationTemporaryPasswordEmail(
+                eq("student@example.edu"),
+                eq("student1"),
+                temporaryPasswordCaptor.capture()
+        );
+        return temporaryPasswordCaptor.getValue();
     }
 }
