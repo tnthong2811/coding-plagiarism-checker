@@ -15,6 +15,24 @@ const rolePaths = [
   }
 ];
 
+const capabilityCards = [
+  {
+    label: "Collection",
+    title: "Submission intake",
+    body: "Students upload source packages into assignment-specific queues with status history."
+  },
+  {
+    label: "Analysis",
+    title: "Code comparison",
+    body: "Teachers select submissions, run JPlag, and inspect matched source lines side by side."
+  },
+  {
+    label: "Governance",
+    title: "Role-separated access",
+    body: "Student, teacher, business admin, and system admin flows stay scoped to their work."
+  }
+];
+
 export function HomePage() {
   const { token } = useAuth();
 
@@ -22,7 +40,7 @@ export function HomePage() {
     <div className="public-page">
       <nav className="public-nav" aria-label="Public navigation">
         <Link className="brand brand--public" to="/">
-          <span className="brand-mark">CP</span>
+          <span className="brand-mark" aria-hidden="true">CP</span>
           <span>
             <strong>CodeProof</strong>
             <small>Plagiarism analysis</small>
@@ -56,14 +74,22 @@ export function HomePage() {
             </Link>
             {!token && <Link className="button button-ghost button-large" to="/register">Student register</Link>}
           </div>
+          <div className="hero-metrics" aria-label="CodeProof workflow coverage">
+            <span><strong>4</strong> role workspaces</span>
+            <span><strong>2</strong> review modes</span>
+            <span><strong>1</strong> source of truth</span>
+          </div>
         </div>
       </section>
 
       <main className="home-main">
-        <section className="home-section">
-          <div className="section-heading">
+        <section className="home-section home-section--intro">
+          <div className="section-heading section-heading--wide">
             <p className="eyebrow">Workflows</p>
             <h2>Built around the people who use it</h2>
+            <p>
+              The interface is organized around repeatable academic integrity tasks: collect, compare, review, and administer.
+            </p>
           </div>
           <div className="role-path-grid">
             {rolePaths.map((item) => (
@@ -74,6 +100,16 @@ export function HomePage() {
               </article>
             ))}
           </div>
+        </section>
+
+        <section className="capability-grid" aria-label="CodeProof capabilities">
+          {capabilityCards.map((item) => (
+            <article className="capability-card" key={item.title}>
+              <span>{item.label}</span>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
         </section>
 
         <section className="workflow-band">

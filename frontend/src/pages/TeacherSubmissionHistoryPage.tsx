@@ -557,6 +557,7 @@ export function TeacherSubmissionHistoryPage() {
                         type="checkbox"
                         checked={selectedIds.includes(item.id)}
                         onChange={() => toggleSelection(item.id)}
+                        aria-label={`Select submission #${item.id} from ${item.submittedBy}`}
                       />
                     </td>
                     <td>#{item.id}</td>

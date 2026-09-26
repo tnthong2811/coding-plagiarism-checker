@@ -25,20 +25,54 @@ const roleCopy: Record<UserRole, { title: string; summary: string; focus: string
   }
 };
 
-const roleActions: Record<UserRole, Array<{ label: string; to: string }>> = {
-  STUDENT: [{ label: "Upload submission", to: "/submissions/upload" }],
+const roleActions: Record<UserRole, Array<{ label: string; to: string; summary: string }>> = {
+  STUDENT: [
+    {
+      label: "Upload submission",
+      to: "/submissions/upload",
+      summary: "Choose an active assignment and attach a source package."
+    }
+  ],
   TEACHER: [
-    { label: "Open assignments", to: "/teacher/submissions/history" },
-    { label: "View reports", to: "/teacher/reports" }
+    {
+      label: "Open assignments",
+      to: "/teacher/submissions/history",
+      summary: "Create review sets, inspect queues, and compare submissions."
+    },
+    {
+      label: "View reports",
+      to: "/teacher/reports",
+      summary: "Open saved similarity runs and source-code comparisons."
+    }
   ],
   BUSINESS_ADMIN: [
-    { label: "Manage users", to: "/admin" },
-    { label: "Manage classes", to: "/admin/classes" },
-    { label: "Open assignments", to: "/teacher/submissions/history" },
-    { label: "Open reports", to: "/teacher/reports" }
+    {
+      label: "Manage users",
+      to: "/admin",
+      summary: "Create accounts and keep role assignments current."
+    },
+    {
+      label: "Manage classes",
+      to: "/admin/classes",
+      summary: "Maintain class rosters, codes, and assignment containers."
+    },
+    {
+      label: "Open assignments",
+      to: "/teacher/submissions/history",
+      summary: "Review classroom submission queues and run comparisons."
+    },
+    {
+      label: "Open reports",
+      to: "/teacher/reports",
+      summary: "Audit saved analysis outputs across assignments."
+    }
   ],
   SYSTEM_ADMIN: [
-    { label: "Manage users", to: "/admin" }
+    {
+      label: "Manage users",
+      to: "/admin",
+      summary: "Manage elevated accounts and technical access."
+    }
   ]
 };
 
@@ -57,24 +91,47 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <section className="panel action-panel">
-        <div>
-          <p className="eyebrow">Workspace actions</p>
-          <h2>{copy.focus}</h2>
-        </div>
-        <div className="action-grid">
-          {roleActions[role].map((action) => (
-            <Link className="action-tile" key={action.to} to={action.to}>
-              <span>{action.label}</span>
+      <div className="dashboard-overview">
+        <section className="panel action-panel">
+          <div>
+            <p className="eyebrow">Workspace actions</p>
+            <h2>{copy.focus}</h2>
+          </div>
+          <div className="action-grid">
+            {roleActions[role].map((action) => (
+              <Link className="action-tile" key={action.to} to={action.to}>
+                <span>{action.label}</span>
+                <p>{action.summary}</p>
+                <strong>Open</strong>
+              </Link>
+            ))}
+            <Link className="action-tile" to="/me">
+              <span>Review profile</span>
+              <p>Check the identity and role attached to your current session.</p>
               <strong>Open</strong>
             </Link>
-          ))}
-          <Link className="action-tile" to="/me">
-            <span>Review profile</span>
-            <strong>Open</strong>
-          </Link>
-        </div>
-      </section>
+          </div>
+        </section>
+
+        <aside className="panel dashboard-brief" aria-label="Workspace guidance">
+          <p className="eyebrow">Operating model</p>
+          <h2>Keep each review traceable</h2>
+          <dl className="detail-list">
+            <div>
+              <dt>Collect</dt>
+              <dd>Every submission starts from an assignment record.</dd>
+            </div>
+            <div>
+              <dt>Compare</dt>
+              <dd>Run analysis only on selected submissions in the same review context.</dd>
+            </div>
+            <div>
+              <dt>Report</dt>
+              <dd>Use saved reports as the audit trail for similarity decisions.</dd>
+            </div>
+          </dl>
+        </aside>
+      </div>
     </div>
   );
 }

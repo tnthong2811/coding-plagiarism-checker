@@ -29,58 +29,61 @@ export function Layout() {
   ];
 
   return (
-    <div className="app-frame">
-      <aside className="sidebar">
-        <Link className="brand" to="/dashboard">
-          <span className="brand-mark">CP</span>
-          <span>
-            <strong>CodeProof</strong>
-            <small>Course integrity suite</small>
-          </span>
-        </Link>
+    <>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+      <div className="app-frame">
+        <aside className="sidebar" aria-label="Workspace sidebar">
+          <Link className="brand" to="/dashboard">
+            <span className="brand-mark" aria-hidden="true">CP</span>
+            <span>
+              <strong>CodeProof</strong>
+              <small>Course integrity suite</small>
+            </span>
+          </Link>
 
-        <div className="sidebar-user">
-          <span className="avatar">
-            {user?.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initials}
-          </span>
-          <span>
-            <strong>{user?.username ?? "User"}</strong>
-            <small>{user?.role ?? "Authenticated"}</small>
-          </span>
-        </div>
-
-        <nav className="side-nav" aria-label="Primary navigation">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `nav-link${isActive ? " nav-link--active" : ""}`}
-            >
-              <span>{item.short}</span>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <button className="button button-danger sidebar-logout" type="button" onClick={logout}>
-          Logout
-        </button>
-      </aside>
-
-      <div className="app-content">
-        <header className="topbar">
-          <div>
-            <span className="topbar-kicker">Coding Plagiarism Checker</span>
-            <strong>{user?.role ? `${user.role} workspace` : "Workspace"}</strong>
+          <div className="sidebar-user">
+            <span className="avatar">
+              {user?.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initials}
+            </span>
+            <span>
+              <strong>{user?.username ?? "User"}</strong>
+              <small>{user?.role ?? "Authenticated"}</small>
+            </span>
           </div>
-          <Link className="button button-subtle" to="/">Homepage</Link>
-        </header>
-        <main className="content-surface">
-        <Outlet />
-        </main>
+
+          <nav className="side-nav" aria-label="Primary navigation">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => `nav-link${isActive ? " nav-link--active" : ""}`}
+              >
+                <span aria-hidden="true">{item.short}</span>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <button className="button button-danger sidebar-logout" type="button" onClick={logout}>
+            Logout
+          </button>
+        </aside>
+
+        <div className="app-content">
+          <header className="topbar">
+            <div>
+              <span className="topbar-kicker">Coding Plagiarism Checker</span>
+              <strong>{user?.role ? `${user.role} workspace` : "Workspace"}</strong>
+            </div>
+            <Link className="button button-subtle" to="/">Homepage</Link>
+          </header>
+          <main id="main-content" className="content-surface" tabIndex={-1}>
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

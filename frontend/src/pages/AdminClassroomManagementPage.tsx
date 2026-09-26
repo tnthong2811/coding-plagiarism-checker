@@ -389,6 +389,15 @@ export function AdminClassroomManagementPage() {
                       key={classroom.id}
                       className={classroom.id === selectedClassroomId ? "comparison-row--active" : ""}
                       onClick={() => setSelectedClassroomId(classroom.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedClassroomId(classroom.id);
+                        }
+                      }}
+                      tabIndex={0}
+                      aria-selected={classroom.id === selectedClassroomId}
+                      title={`Edit class ${classroom.code}`}
                     >
                       <td onClick={(event) => event.stopPropagation()}>
                         <input

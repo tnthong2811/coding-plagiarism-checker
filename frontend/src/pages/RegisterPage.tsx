@@ -60,7 +60,7 @@ export function RegisterPage() {
     <main className="auth-page">
       <section className="auth-visual" style={{ backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0.72)), url(${heroImage})` }}>
         <Link className="brand brand--public" to="/">
-          <span className="brand-mark">CP</span>
+          <span className="brand-mark" aria-hidden="true">CP</span>
           <span>
             <strong>CodeProof</strong>
             <small>Student onboarding</small>
