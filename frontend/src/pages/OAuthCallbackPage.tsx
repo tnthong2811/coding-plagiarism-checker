@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canAccessReview, canAccessUserAdmin } from "../auth/roles";
 import type { UserProfile, UserRole } from "../types/auth";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 function destinationForRole(role: UserRole) {
   if (canAccessUserAdmin(role)) {
@@ -68,7 +69,7 @@ export function OAuthCallbackPage() {
           completionRef.current = null;
         }
         if (active) {
-          setError(err instanceof Error ? err.message : "Google sign-in failed");
+          setError(getFriendlyErrorMessage(err, "Không thể hoàn tất đăng nhập bằng Google."));
         }
       }
     }
@@ -97,7 +98,7 @@ export function OAuthCallbackPage() {
       const updatedProfile = await updateUsername(nextUsername);
       navigate(destinationForRole(updatedProfile.role), { replace: true });
     } catch (err) {
-      setSetupError(err instanceof Error ? err.message : "Could not update your name");
+      setSetupError(getFriendlyErrorMessage(err, "Không thể cập nhật tên hiển thị."));
     } finally {
       setSaving(false);
     }

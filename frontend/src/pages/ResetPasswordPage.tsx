@@ -4,6 +4,7 @@ import { forgotPassword } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import { defaultRouteForRole } from "../auth/roles";
 import heroImage from "../assets/hero-analysis-workspace.png";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 interface ResetPasswordLocationState {
   username?: string;
@@ -41,7 +42,7 @@ export function ResetPasswordPage() {
         const response = await forgotPassword({ identifier });
         setMessage(response.message);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to request password reset");
+        setError(getFriendlyErrorMessage(err, "Không thể gửi mật khẩu tạm thời. Vui lòng thử lại."));
       } finally {
         setSubmitting(false);
       }
@@ -49,7 +50,7 @@ export function ResetPasswordPage() {
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Mật khẩu xác nhận không khớp.");
       return;
     }
 
@@ -61,7 +62,7 @@ export function ResetPasswordPage() {
         return;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Password update failed");
+      setError(getFriendlyErrorMessage(err, "Không thể cập nhật mật khẩu. Vui lòng thử lại."));
     } finally {
       setSubmitting(false);
     }

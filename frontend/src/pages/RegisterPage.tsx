@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { googleOAuthLoginUrl } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import heroImage from "../assets/hero-analysis-workspace.png";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 function googleStatusMessage(search: string) {
   const params = new URLSearchParams(search);
@@ -50,7 +51,7 @@ export function RegisterPage() {
       setEmail("");
       setUsername("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Register failed");
+      setError(getFriendlyErrorMessage(err, "Không thể đăng ký. Vui lòng thử lại."));
     } finally {
       setSubmitting(false);
     }

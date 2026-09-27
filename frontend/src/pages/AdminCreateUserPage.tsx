@@ -3,6 +3,7 @@ import { createUserByAdmin } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import { BUSINESS_MANAGED_ROLES, USER_ROLES, canManageSystemAdmin, roleBadgeClass } from "../auth/roles";
 import type { UserRole } from "../types/auth";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   STUDENT: "Can submit assignment source files.",
@@ -42,7 +43,7 @@ export function AdminCreateUserPage() {
       setPassword("");
       setRole("STUDENT");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
+      setError(getFriendlyErrorMessage(err, "Không thể tạo người dùng."));
     } finally {
       setSubmitting(false);
     }

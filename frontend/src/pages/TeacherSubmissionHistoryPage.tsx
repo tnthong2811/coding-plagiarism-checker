@@ -4,6 +4,7 @@ import { createAssignment, deleteAssignment, getAssignments, getAssignmentSubmis
 import { useAuth } from "../auth/AuthContext";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ComparisonResultViewer } from "../components/ComparisonResultViewer";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 import type {
   AnalysisLanguage,
   AssignmentResponse,
@@ -105,7 +106,7 @@ export function TeacherSubmissionHistoryPage() {
       setClassrooms([]);
       setAssignments([]);
       setRows([]);
-      setError(err instanceof Error ? err.message : "Failed to load assignments");
+      setError(getFriendlyErrorMessage(err, "Không thể tải danh sách bài tập."));
     } finally {
       setLoadingAssignments(false);
     }
@@ -128,7 +129,7 @@ export function TeacherSubmissionHistoryPage() {
     } catch (err) {
       setRows([]);
       setSelectedIds([]);
-      setError(err instanceof Error ? err.message : "Failed to load assignment submissions");
+      setError(getFriendlyErrorMessage(err, "Không thể tải danh sách bài nộp."));
     } finally {
       setLoading(false);
     }
@@ -198,7 +199,7 @@ export function TeacherSubmissionHistoryPage() {
       setNewAssignmentDueAt("");
       setMessage(`Created assignment #${created.id} in ${selectedNewAssignmentClassroom?.code ?? "classroom"}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create assignment");
+      setError(getFriendlyErrorMessage(err, "Không thể tạo bài tập."));
     } finally {
       setSavingAssignment(false);
     }
@@ -225,7 +226,7 @@ export function TeacherSubmissionHistoryPage() {
       }
       await loadAssignments();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete selected assignments");
+      setError(getFriendlyErrorMessage(err, "Không thể xóa bài tập đã chọn."));
       await loadAssignments();
     } finally {
       setDeletingAssignments(false);
@@ -263,7 +264,7 @@ export function TeacherSubmissionHistoryPage() {
       const result = await compareWithJPlag(token, payload);
       setComparisonResult(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to run JPlag analysis");
+      setError(getFriendlyErrorMessage(err, "Không thể chạy phân tích JPlag."));
     } finally {
       setComparing(false);
     }

@@ -5,6 +5,7 @@ import { googleOAuthLoginUrl } from "../api/authApi";
 import { useAuth } from "../auth/AuthContext";
 import { defaultRouteForRole } from "../auth/roles";
 import heroImage from "../assets/hero-analysis-workspace.png";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export function LoginPage() {
         });
         return;
       }
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(getFriendlyErrorMessage(err, "Không thể đăng nhập. Vui lòng thử lại."));
     } finally {
       setSubmitting(false);
     }

@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { getAssignments, getClassrooms, getMySubmissions, joinClassroom, uploadSubmission } from "../api/submissionApi";
 import { useAuth } from "../auth/AuthContext";
 import type { AssignmentResponse, ClassroomResponse, SubmissionResponse } from "../types/submission";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 function formatDate(value?: string | null) {
   return value ? new Date(value).toLocaleString() : "No due date";
@@ -106,7 +107,7 @@ export function SubmissionUploadPage() {
       setMessage(`Joined class ${joined.code}`);
       await loadMySubmissions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to join classroom");
+      setError(getFriendlyErrorMessage(err, "Không thể tham gia lớp học."));
     } finally {
       setJoining(false);
     }
@@ -137,7 +138,7 @@ export function SubmissionUploadPage() {
       setFile(null);
       await loadMySubmissions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(getFriendlyErrorMessage(err, "Không thể tải bài nộp lên."));
     } finally {
       setSubmitting(false);
     }

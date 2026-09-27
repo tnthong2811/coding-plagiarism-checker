@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { roleBadgeClass } from "../auth/roles";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import type { ClassroomResponse, CreateClassroomRequest } from "../types/submission";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 function formatDate(value?: string | null) {
   return value ? new Date(value).toLocaleString() : "-";
@@ -132,7 +133,7 @@ export function AdminClassroomManagementPage() {
         return data[0]?.id ?? "";
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load classrooms");
+      setError(getFriendlyErrorMessage(err, "Không thể tải danh sách lớp học."));
       setClassrooms([]);
     } finally {
       setLoading(false);
@@ -185,7 +186,7 @@ export function AdminClassroomManagementPage() {
       await refreshClassrooms();
       setSelectedClassroomId(created.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create classroom");
+      setError(getFriendlyErrorMessage(err, "Không thể tạo lớp học."));
     } finally {
       setCreating(false);
     }
@@ -210,7 +211,7 @@ export function AdminClassroomManagementPage() {
       setClassrooms((current) => current.map((classroom) => (classroom.id === updated.id ? updated : classroom)));
       setMessage(`Updated class ${updated.code}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update classroom");
+      setError(getFriendlyErrorMessage(err, "Không thể cập nhật lớp học."));
     } finally {
       setSaving(false);
     }
@@ -242,7 +243,7 @@ export function AdminClassroomManagementPage() {
       }
       await refreshClassrooms();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete selected classrooms");
+      setError(getFriendlyErrorMessage(err, "Không thể xóa lớp học đã chọn."));
       await refreshClassrooms();
     } finally {
       setDeleting(false);

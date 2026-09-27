@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { BUSINESS_MANAGED_ROLES, USER_ROLES, canManageSystemAdmin, roleBadgeClass } from "../auth/roles";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import type { AdminUser, UserRole } from "../types/auth";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 export function AdminUserManagementPage() {
   const { token, user } = useAuth();
@@ -52,7 +53,7 @@ export function AdminUserManagementPage() {
         current.filter((id) => data.some((item) => item.id === id && item.id !== user?.id))
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load users");
+      setError(getFriendlyErrorMessage(err, "Không thể tải danh sách người dùng."));
     } finally {
       setLoadingUsers(false);
     }
@@ -78,7 +79,7 @@ export function AdminUserManagementPage() {
       setCreateRole("STUDENT");
       await refreshUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create user");
+      setError(getFriendlyErrorMessage(err, "Không thể tạo người dùng."));
     } finally {
       setSubmittingCreate(false);
     }
@@ -95,7 +96,7 @@ export function AdminUserManagementPage() {
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       setMessage(`Updated role for ${updated.username} to ${updated.role}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update role");
+      setError(getFriendlyErrorMessage(err, "Không thể cập nhật vai trò."));
     } finally {
       setUpdatingUserId(null);
     }
@@ -129,7 +130,7 @@ export function AdminUserManagementPage() {
       setSelectedUserIds([]);
       await refreshUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete selected users");
+      setError(getFriendlyErrorMessage(err, "Không thể xóa người dùng đã chọn."));
       await refreshUsers();
     } finally {
       setDeletingUsers(false);

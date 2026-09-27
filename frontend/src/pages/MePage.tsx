@@ -2,6 +2,7 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import type { UserRole } from "../types/auth";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 const MAX_AVATAR_FILE_SIZE = 1024 * 1024;
 const ACCEPTED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
@@ -55,7 +56,7 @@ export function MePage() {
       await refreshMe();
       setMessage("Profile refreshed.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to refresh");
+      setError(getFriendlyErrorMessage(err, "Không thể làm mới hồ sơ."));
     }
   }
 
@@ -104,7 +105,7 @@ export function MePage() {
       setAvatarUrl(updated.avatarUrl ?? "");
       setMessage("Avatar updated.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update avatar");
+      setError(getFriendlyErrorMessage(err, "Không thể cập nhật ảnh đại diện."));
     } finally {
       setSavingAvatar(false);
     }
@@ -120,7 +121,7 @@ export function MePage() {
       setAvatarUrl("");
       setMessage("Avatar removed.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove avatar");
+      setError(getFriendlyErrorMessage(err, "Không thể xóa ảnh đại diện."));
     } finally {
       setSavingAvatar(false);
     }

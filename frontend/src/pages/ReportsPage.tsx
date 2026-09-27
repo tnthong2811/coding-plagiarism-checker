@@ -5,6 +5,7 @@ import { useAuth } from "../auth/AuthContext";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ComparisonResultViewer } from "../components/ComparisonResultViewer";
 import type { AssignmentResponse, ComparisonResponse, ReportSummaryResponse } from "../types/submission";
+import { getFriendlyErrorMessage } from "../utils/errorMessages";
 
 function shortReportId(id: string) {
   return id.length <= 10 ? id : `${id.slice(0, 10)}...`;
@@ -75,7 +76,7 @@ export function ReportsPage() {
       }
     } catch (err) {
       setReports([]);
-      setError(err instanceof Error ? err.message : "Failed to load reports");
+      setError(getFriendlyErrorMessage(err, "Không thể tải danh sách báo cáo."));
     } finally {
       setLoadingReports(false);
     }
@@ -94,7 +95,7 @@ export function ReportsPage() {
       setReportDetail(await getReport(token, reportId));
     } catch (err) {
       setReportDetail(null);
-      setError(err instanceof Error ? err.message : "Failed to load report detail");
+      setError(getFriendlyErrorMessage(err, "Không thể mở chi tiết báo cáo."));
     } finally {
       setLoadingDetail(false);
     }
@@ -147,7 +148,7 @@ export function ReportsPage() {
       }
       await loadReports();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete selected reports");
+      setError(getFriendlyErrorMessage(err, "Không thể xóa báo cáo đã chọn."));
       await loadReports();
     } finally {
       setDeletingReports(false);
