@@ -1,303 +1,298 @@
 # Coding Plagiarism Checker
 
-Hệ thống phát hiện đạo văn mã nguồn sử dụng kiến trúc microservices. Tích hợp jPlag và Moss để so sánh mã nguồn, lưu trữ bài nộp trên MinIO, và quản lý báo cáo phân tích trên MongoDB.
+Hệ thống hỗ trợ phát hiện đạo văn mã nguồn cho lớp học lập trình. Dự án dùng kiến trúc microservices, lưu file bài nộp trên MinIO, xử lý bất đồng bộ qua RabbitMQ và phân tích độ tương đồng bằng JPlag.
 
-## Kiến trúc Hệ thống
+## Thành Phần Chính
 
+- `auth-service` (`8081`): đăng nhập, JWT, Google OAuth, quản lý người dùng và phân quyền.
+- `submission-service` (`8082`): quản lý lớp học, bài tập, bài nộp và upload file lên MinIO.
+- `analyzer-service` (`8083`): chạy JPlag, lưu và trả báo cáo phân tích trên MongoDB.
+- `frontend` (`5173`): giao diện React + TypeScript + Vite.
+- Hạ tầng local: PostgreSQL, MongoDB, RabbitMQ và MinIO.
+
+## Kiến Trúc Local
+
+```text
+React/Vite Frontend (5173)
+        |
+        | Vite proxy
+        v
++----------------+     +--------------------+     +------------------+
+| Auth Service   |     | Submission Service |     | Analyzer Service |
+| 8081           |     | 8082               |     | 8083             |
++-------+--------+     +----+----------+----+     +----+--------+----+
+        |                   |          |               |        |
+        v                   v          v               v        v
+  PostgreSQL           PostgreSQL   RabbitMQ        RabbitMQ  MongoDB
+                                     |
+                                     v
+                                    MinIO
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Client / UI                              │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-        ┌──────────────────────┼──────────────────────┐
-        │                      │                      │
-    [Auth Service]      [Submission Service]    [Analyzer Service]
-      (8081)              (8082)                    (8083)
-        │                      │                      │
-    ┌───┴───────────┬──────────┴───────┬─────────────┴──────────┐
-    │               │                  │                        │
-[PostgreSQL]  [PostgreSQL]      [RabbitMQ]                [MongoDB]
-  (5432)       (5432)            (5672)                    (27017)
-    │               │                  │                        │
-    └───────────────┴──────────────────┴────────────────────────┘
-                    [MinIO] (9000)
-                  Object Storage
-```
 
-**3 Microservices:**
-- **Auth Service (8081):** Xác thực, cấp JWT token
-- **Submission Service (8082):** Nhận bài nộp, lưu MinIO, gửi job qua RabbitMQ
-- **Analyzer Service (8083):** Chạy jPlag/Moss, lưu báo cáo MongoDB
-
-**Infrastructure:**
-- PostgreSQL: User, submissions metadata
-- MongoDB: Analysis reports
-- RabbitMQ: Message queue (submission → analyzer)
-- MinIO: Object storage cho source code files
+`docker-compose.yml` chỉ chạy backend và hạ tầng. Frontend chạy riêng bằng Vite để tiện phát triển.
 
 ## Yêu Cầu
 
-- Java 17+
-- Maven 3.9+
-- Docker & Docker Compose
-- PowerShell (Windows) hoặc Bash (Linux/macOS)
+- Docker Desktop hoặc Docker Engine có Docker Compose.
+- Node.js 18+ và npm để chạy frontend.
+- Java 17+ nếu muốn chạy Maven/test trực tiếp trên máy.
+- Không cần cài Maven global vì repo đã có Maven Wrapper (`mvnw`, `mvnw.cmd`).
 
-## Khởi Động Cục Bộ (Development)
+## Cài Đặt Và Chạy Local
 
-### 1. Clone Repository
+### 1. Clone repo
+
 ```bash
 git clone https://github.com/tnthong2811/coding-plagiarism-checker.git
 cd coding-plagiarism-checker
 ```
 
-### 2. Cấu Hình Environment
-```bash
-# Copy .env.example thành .env
-cp .env.example .env
+### 2. Tạo file môi trường
 
-# Chỉnh sửa .env nếu cần (passwords, ports, ...)
-# Lưu ý: các giá trị mặc định trong .env.example chỉ dùng cho dev
-```
+Windows PowerShell:
 
-### 3. Build Project
 ```powershell
-# Windows PowerShell
-.\mvnw.cmd clean package
-
-# Linux/macOS
-./mvnw clean package
+Copy-Item .env.example .env
 ```
 
-### 4. Khởi Động Docker Compose
+Linux/macOS/Git Bash:
+
+```bash
+cp .env.example .env
+```
+
+Mở `.env` và chỉnh nếu cần. Để có tài khoản quản trị ban đầu khi chạy local, nên bật bootstrap admin:
+
+```env
+BOOTSTRAP_ADMIN_USERNAME=admin
+BOOTSTRAP_ADMIN_PASSWORD=admin123
+BOOTSTRAP_ADMIN_ROLE=BUSINESS_ADMIN
+```
+
+Ghi chú:
+
+- `APP_FRONTEND_BASE_URL` nên giữ là `http://localhost:5173` khi chạy frontend bằng Vite.
+- `APP_MAIL_ENABLED=false` là mặc định. Với cấu hình này, đăng ký bằng email trên `/register` sẽ không dùng được vì hệ thống cần SMTP để gửi mật khẩu tạm thời. Khi phát triển local, hãy dùng bootstrap admin rồi tạo `TEACHER`/`STUDENT` trong trang admin, hoặc cấu hình SMTP thật.
+- Google OAuth chỉ hoạt động khi cấu hình client ID/secret trong `.env`.
+
+### 3. Khởi động backend và hạ tầng
+
+```bash
+docker compose up --build
+```
+
+Nếu máy đang dùng Docker Compose v1:
+
 ```bash
 docker-compose up --build
 ```
 
-**Hoặc (nếu images đã build trước):**
+Lệnh này khởi động PostgreSQL, MongoDB, RabbitMQ, MinIO và ba backend service. Frontend chưa chạy ở bước này.
+
+Kiểm tra service:
+
 ```bash
-docker-compose up
+docker compose ps
+docker compose logs -f auth-service
+docker compose logs -f submission-service
+docker compose logs -f analyzer-service
 ```
 
-### 5. Kiểm Tra Services
+Health check:
 
-Services sẽ lần lượt khởi động. Kiểm tra logs:
+- Auth Service: http://localhost:8081/actuator/health
+- Submission Service: http://localhost:8082/actuator/health
+- Analyzer Service: http://localhost:8083/actuator/health
+
+### 4. Chạy frontend
+
+Mở terminal khác:
+
 ```bash
-docker-compose logs -f auth-service
-docker-compose logs -f submission-service
-docker-compose logs -f analyzer-service
+cd frontend
+npm install
+npm run dev
 ```
 
-**Health Checks:**
-- Auth Service: `curl http://localhost:8081/actuator/health`
-- Submission Service: `curl http://localhost:8082/actuator/health`
-- Analyzer Service: `curl http://localhost:8083/actuator/health`
+Mở trình duyệt tại http://localhost:5173.
 
-### 6. Truy Cập Management Interfaces
+Vite proxy mặc định:
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| RabbitMQ Management | http://localhost:15672 | Queue monitoring (guest/guest) |
-| MinIO Console | http://localhost:9001 | Object storage UI (minioadmin/minioadmin) |
-| PostgreSQL | localhost:5432 | DB access (postgres/password) |
-| MongoDB | localhost:27017 | Report DB access |
+- `/api`, `/actuator`, `/oauth2`, `/login/oauth2` -> `http://localhost:8081`
+- `/submission-api` -> `http://localhost:8082`
+- `/analyzer-api` -> `http://localhost:8083`
+
+### 5. Luồng kiểm tra nhanh
+
+1. Đăng nhập bằng tài khoản bootstrap admin.
+2. Vào trang admin để tạo `TEACHER` và `STUDENT`.
+3. Tạo lớp học, gán giáo viên và thêm sinh viên hoặc cho sinh viên join bằng mã lớp.
+4. Đăng nhập giáo viên, tạo bài tập.
+5. Đăng nhập sinh viên, upload bài nộp.
+6. Đăng nhập giáo viên/admin để chạy so sánh và xem báo cáo.
+
+## Tài Khoản Và Cổng Local
+
+| Thành phần | URL/Cổng | Thông tin mặc định |
+|---|---:|---|
+| Frontend | http://localhost:5173 | Chạy bằng `npm run dev` |
+| Auth Service | http://localhost:8081 | JWT API |
+| Submission Service | http://localhost:8082 | Submission API |
+| Analyzer Service | http://localhost:8083 | Report API |
+| RabbitMQ Management | http://localhost:15672 | `guest` / `guest` |
+| MinIO Console | http://localhost:9001 | `minioadmin` / `changeme_minio_password_here` |
+| PostgreSQL | localhost:5432 | `postgres` / `changeme_secure_password_here`, DB `plagiarism_db` |
+| MongoDB | localhost:27017 | Không bật auth trong compose local |
 
 ## Cấu Trúc Project
 
-```
+```text
 coding-plagiarism-checker/
-├── pom.xml                    # Root Maven POM (multi-module)
-├── docker-compose.yml         # Orchestration
-├── .env.example              # Environment variables template
-├── .env                      # Local environment (git-ignored)
-├── auth/
-│   ├── pom.xml
-│   ├── Dockerfile
-│   └── src/
-├── submission/
-│   ├── pom.xml
-│   ├── Dockerfile
-│   └── src/
-├── analyzer/
-│   ├── pom.xml
-│   ├── Dockerfile
-│   └── src/
-└── common/
-    ├── pom.xml
-    └── src/                  # Shared models & utilities
+├── .github/workflows/ci.yml
+├── analyzer/                 # Analyzer service, JPlag, MongoDB, RabbitMQ, MinIO
+├── auth/                     # Auth service, JWT, OAuth, user management
+├── common/                   # DTO/entity/exception dùng chung
+├── docs/                     # Tài liệu dự án và sơ đồ
+├── frontend/                 # React + TypeScript + Vite
+├── scripts/                  # Script hỗ trợ local
+├── submission/               # Classroom, assignment, submission service
+├── docker-compose.yml        # Backend + infrastructure cho local
+├── .env.example              # Mẫu biến môi trường
+└── pom.xml                   # Maven multi-module root
 ```
 
-## Các Lệnh Hữu Ích
+## Lệnh Hữu Ích
 
-### Maven
+### Backend Maven
+
+Windows:
+
 ```powershell
-# Build mà không chạy test
-.\mvnw.cmd -DskipTests clean package
-
-# Chỉ build một module
-.\mvnw.cmd -pl auth clean package
-
-# Chạy test
 .\mvnw.cmd clean verify
+.\mvnw.cmd -DskipTests clean package
+.\mvnw.cmd -pl auth -am clean package
+```
+
+Linux/macOS:
+
+```bash
+./mvnw clean verify
+./mvnw -DskipTests clean package
+./mvnw -pl auth -am clean package
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+npm run build
+npm run preview
 ```
 
 ### Docker Compose
+
 ```bash
-# Khởi động tất cả services
-docker-compose up --build
-
-# Khởi động background
-docker-compose up -d
-
-# Dừng tất cả
-docker-compose down
-
-# Xóa volumes (dữ liệu sẽ mất)
-docker-compose down -v
-
-# Xem logs của service cụ thể
-docker-compose logs -f submission-service
-
-# Vào container shell
-docker-compose exec auth-service sh
+docker compose up --build
+docker compose up -d
+docker compose down
+docker compose down -v
+docker compose logs -f submission-service
+docker compose exec auth-service sh
 ```
 
-### Docker
+`docker compose down -v` sẽ xóa volume local, toàn bộ dữ liệu database/object storage sẽ mất.
+
+## API Chính
+
+### Auth Service
+
+```text
+POST   /api/auth/login
+POST   /api/auth/register
+POST   /api/auth/password/forgot
+POST   /api/auth/password/temporary
+POST   /api/auth/password/reset
+GET    /api/auth/me
+POST   /api/auth/me/username
+POST   /api/auth/me/avatar
+GET    /api/auth/admin/users
+POST   /api/auth/admin/users
+POST   /api/auth/admin/users/{id}/role
+DELETE /api/auth/admin/users/{id}
+GET    /oauth2/authorization/google
+GET    /login/oauth2/code/google
+```
+
+### Submission Service
+
+```text
+GET    /api/classes
+GET    /api/classes/{id}
+POST   /api/classes
+PUT    /api/classes/{id}
+DELETE /api/classes/{id}
+POST   /api/classes/join
+GET    /api/assignments
+GET    /api/assignments/{id}
+POST   /api/assignments
+PUT    /api/assignments/{id}
+DELETE /api/assignments/{id}
+GET    /api/assignments/{id}/submissions
+GET    /api/assignments/{id}/submissions/mine
+POST   /api/submissions/upload
+GET    /api/submissions/mine
+GET    /api/submissions/history
+```
+
+### Analyzer Service
+
+```text
+POST   /api/reports/compare
+GET    /api/reports
+GET    /api/reports/{id}
+DELETE /api/reports/{id}
+```
+
+## Troubleshooting
+
+### Không đăng ký được bằng email
+
+Nếu gặp lỗi mail khi dùng trang `/register`, nguyên nhân thường là `APP_MAIL_ENABLED=false`. Với local dev, dùng bootstrap admin để tạo user. Nếu muốn dùng đăng ký email/reset password thật, cấu hình SMTP trong `.env` rồi restart `auth-service`.
+
+### Service không khởi động
+
 ```bash
-# Build image cho 1 service
-docker build -t coding-plagiarism-checker/auth:local ./auth
-
-# Run container
-docker run -p 8081:8081 coding-plagiarism-checker/auth:local
+docker compose logs --tail=80
+docker compose ps
 ```
 
-## API Endpoints (Tham khảo)
+Kiểm tra các cổng hay bị chiếm: `5173`, `8081`, `8082`, `8083`, `5432`, `27017`, `5672`, `15672`, `9000`, `9001`.
 
-### Auth Service (8081)
-```
-POST   /api/auth/login         - Đăng nhập
-POST   /api/auth/register      - Đăng ký
-GET    /oauth2/authorization/google - Sign in with Google
-GET    /login/oauth2/code/google - Google OAuth callback
-POST   /api/auth/password/reset - Đặt lại mật khẩu bằng token trong email
-GET    /api/auth/me            - Lấy thông tin user hiện tại (JWT)
-POST   /api/auth/admin/users   - Admin tạo user theo role
+### Thay đổi `.env` không có tác dụng
+
+Restart các container:
+
+```bash
+docker compose down
+docker compose up --build
 ```
 
-### Submission Service (8082)
-```
-GET    /api/classes                  - List classrooms in current user scope
-POST   /api/classes                  - Business Admin creates classroom
-PUT    /api/classes/{id}             - Business Admin updates classroom + members
-DELETE /api/classes/{id}             - Business Admin deletes classroom with assignments/submissions
-POST   /api/classes/join             - Student joins classroom by class code
-GET    /api/assignments              - List assignments in current user scope
-POST   /api/assignments              - Teacher/Business Admin creates assignment in classroom
-PUT    /api/assignments/{id}         - Teacher/Business Admin updates managed assignment
-DELETE /api/assignments/{id}         - Teacher/Business Admin deletes managed assignment
-GET    /api/assignments/{id}/submissions - Teacher/Business Admin lists scoped submissions
-POST   /api/submissions/upload       - Nộp bài
-GET    /api/submissions/mine         - Danh sách bài nộp của user hiện tại
-```
+### Muốn làm sạch dữ liệu local
 
-### Analyzer Service (8083)
-```
-GET    /api/reports/{submissionId}   - Lấy báo cáo phân tích
-GET    /api/reports                  - Danh sách báo cáo
+```bash
+docker compose down -v
+docker compose up --build
 ```
 
 ## Bảo Mật
 
-### Environment Variables
-Các bí mật (passwords, JWT secret, API keys) được quản lý qua `.env`:
-- Không commit `.env` vào git (đã thêm vào `.gitignore`)
-- Chỉ commit `.env.example` (template)
-- Mỗi developer/environment sử dụng `.env` riêng
-
-### Google OAuth onboarding
-Luồng Google thật bắt đầu ở `/oauth2/authorization/google`. Sau khi Google xác thực email:
-- Nếu là user mới, auth-service tạo tài khoản `STUDENT` bằng email Google đã xác thực.
-- Nếu user đã tồn tại, auth-service dùng tài khoản đó.
-- Sau đó auth-service cấp JWT và chuyển về frontend `/oauth/callback`.
-
-Trong Google Cloud Console, cấu hình Authorized redirect URI cho local:
-`http://localhost:8081/login/oauth2/code/google`
-
-Khi cần gửi mail thật cho các luồng reset mật khẩu khác, cấu hình trong `.env`:
-- `APP_FRONTEND_BASE_URL`
-- `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID`
-- `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET`
-- `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE`
-- `APP_MAIL_ENABLED=true`
-- `APP_MAIL_FROM`
-- `SPRING_MAIL_HOST`
-- `SPRING_MAIL_PORT`
-- `SPRING_MAIL_USERNAME`
-- `SPRING_MAIL_PASSWORD`
-- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH`
-- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE`
-
-### Production
-Cho production, sử dụng:
-- Docker Secrets (Swarm mode)
-- Kubernetes Secrets
-- Secret Manager (AWS Secrets Manager, HashiCorp Vault, ...)
-
-Cập nhật `docker-compose.yml` hoặc `secrets` field trong compose file để sử dụng external secrets.
-
-## Troubleshooting
-
-### Services không khởi động
-1. Kiểm tra logs:
-   ```bash
-   docker-compose logs --tail=50
-   ```
-2. Kiểm tra ports có bị chiếm không:
-   ```bash
-   netstat -ano | findstr :8081  # Windows
-   lsof -i :8081                 # Linux/macOS
-   ```
-3. Xóa volumes cũ:
-   ```bash
-   docker-compose down -v
-   docker-compose up --build
-   ```
-
-### Database connection error
-- Kiểm tra Postgres healthcheck pass: `docker-compose ps` xem STATUS
-- Đợi Postgres ready (~15s)
-- Kiểm tra environment variables trong `.env`
-
-### Memory issues
-- Điều chỉnh `JAVA_OPTS` trong Dockerfile (Xms, Xmx)
-- Mặc định: `-Xms256m -Xmx512m` (cần tối thiểu 256MB)
-
-## Deployment
-
-### GitHub Actions (CI/CD)
-Workflow tự động:
-1. Build & test Maven
-2. Build Docker images
-3. Push to registry (nếu có secrets)
-
-`.github/workflows/ci.yml` — xem file để cấu hình registry.
-
-### Docker Stack / Kubernetes
-- Stack: `docker stack deploy -c docker-compose.yml plagiarism`
-- K8s: (manifests coming soon)
-
-## Đóng Góp
-
-1. Fork repository
-2. Tạo branch feature (`git checkout -b feature/abc`)
-3. Commit changes (`git commit -m 'Add abc'`)
-4. Push (`git push origin feature/abc`)
-5. Tạo Pull Request
+- Không commit `.env`.
+- Chỉ commit `.env.example`.
+- Đổi các giá trị mặc định trong `.env` nếu chạy ngoài máy cá nhân.
+- Không hard-code password, JWT secret, OAuth key hoặc MinIO key trong source.
 
 ## License
 
 MIT License © 2026 tnthong2811
-
-## Liên Hệ
-
-- GitHub Issues: https://github.com/tnthong2811/coding-plagiarism-checker/issues
-- Email: 23020710@vnu.edu.vn

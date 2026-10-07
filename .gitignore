@@ -27,10 +27,28 @@ bin/
 
 # Docker
 docker-compose.override.yml
+docker-compose.prod.yml
+.dockerignore
+.env.production
+.env.production.example
+deploy/
+frontend/.dockerignore
+frontend/Dockerfile
+frontend/nginx.conf
 
 # Logs
 logs/
 *.log
+
+# Local assistant/design artifacts
+codex-skills/
+design-system/
+
+# Docs build artifacts and deployment notes
+docs/*.aux
+docs/*.toc
+docs/*.pdf
+docs/deployment.md
 
 # Frontend
 frontend/node_modules/

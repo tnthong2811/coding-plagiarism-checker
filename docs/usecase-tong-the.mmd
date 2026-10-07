@@ -1,0 +1,103 @@
+%% Sơ đồ use case tổng thể - Coding Plagiarism Checker
+%% Xuất PNG bằng Mermaid CLI:
+%% npx @mermaid-js/mermaid-cli -i docs/usecase-tong-the.mmd -o docs/so-do-use-case.png
+
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial",
+    "fontSize": "18px",
+    "primaryColor": "#ffffff",
+    "primaryBorderColor": "#111827",
+    "primaryTextColor": "#111827",
+    "lineColor": "#111827",
+    "secondaryColor": "#f8fafc",
+    "tertiaryColor": "#ffffff",
+    "clusterBkg": "#ffffff",
+    "clusterBorder": "#94a3b8"
+  },
+  "flowchart": {
+    "nodeSpacing": 36,
+    "rankSpacing": 52,
+    "curve": "basis"
+  }
+}}%%
+
+flowchart LR
+    Guest["Khách"]
+    Student["STUDENT<br/>Sinh viên"]
+    Teacher["TEACHER<br/>Giáo viên"]
+    BusinessAdmin["BUSINESS_ADMIN<br/>Quản trị nghiệp vụ"]
+    SystemAdmin["SYSTEM_ADMIN<br/>Quản trị hệ thống"]
+
+    Google["Google OAuth"]
+    Mail["Email service"]
+    MinIO["MinIO"]
+    RabbitMQ["RabbitMQ"]
+    JPlag["JPlag"]
+    MongoDB["MongoDB"]
+
+    subgraph System["Coding Plagiarism Checker"]
+        direction TB
+
+        subgraph Auth["auth-service"]
+            UC01(["Đăng ký / đăng nhập"])
+            UC02(["Quên / đặt lại mật khẩu"])
+            UC03(["Quản lý hồ sơ cá nhân"])
+            UC04(["Quản lý người dùng"])
+        end
+
+        subgraph Submission["submission-service"]
+            UC05(["Quản lý lớp học"])
+            UC06(["Tham gia lớp bằng mã lớp"])
+            UC07(["Quản lý bài tập"])
+            UC08(["Xem bài tập"])
+            UC09(["Nộp bài"])
+            UC10(["Xem lịch sử bài nộp"])
+            UC11(["Xem bài nộp của lớp"])
+        end
+
+        subgraph Analyzer["analyzer-service"]
+            UC12(["Phân tích đạo văn mã nguồn"])
+            UC13(["Xem báo cáo phân tích"])
+            UC14(["Xóa báo cáo"])
+        end
+    end
+
+    Guest --> UC01
+    Guest --> UC02
+
+    Student --> UC03
+    Student --> UC06
+    Student --> UC08
+    Student --> UC09
+    Student --> UC10
+
+    Teacher --> UC03
+    Teacher --> UC07
+    Teacher --> UC11
+    Teacher --> UC12
+    Teacher --> UC13
+
+    BusinessAdmin --> UC03
+    BusinessAdmin --> UC04
+    BusinessAdmin --> UC05
+    BusinessAdmin --> UC07
+    BusinessAdmin --> UC11
+    BusinessAdmin --> UC12
+    BusinessAdmin --> UC13
+    BusinessAdmin --> UC14
+
+    SystemAdmin --> UC03
+    SystemAdmin --> UC04
+
+    UC01 -. "<<include>>" .-> Google
+    UC02 -. "<<include>>" .-> Mail
+    UC09 -. "<<include>> lưu file" .-> MinIO
+    UC09 -. "<<include>> phát event" .-> RabbitMQ
+    UC12 -. "<<include>> nhận event" .-> RabbitMQ
+    UC12 -. "<<include>> tải bài nộp" .-> MinIO
+    UC12 -. "<<include>> chạy so sánh" .-> JPlag
+    UC12 -. "<<include>> lưu report" .-> MongoDB
+    UC13 -. "<<include>> đọc report" .-> MongoDB
+    UC14 -. "<<include>> xóa report" .-> MongoDB

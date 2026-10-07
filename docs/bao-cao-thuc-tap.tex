@@ -1,0 +1,587 @@
+\documentclass[12pt,a4paper]{article}
+
+% Có thể biên dịch bằng XeLaTeX. Với pdfLaTeX cần môi trường có gói tiếng Việt T5.
+\usepackage{iftex}
+\ifPDFTeX
+    \usepackage[utf8]{inputenc}
+    \usepackage[T5]{fontenc}
+    \usepackage[vietnamese]{babel}
+\else
+    \usepackage{fontspec}
+    \setmainfont{Times New Roman}
+    \usepackage[provide=*,vietnamese]{babel}
+\fi
+
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{array}
+\newcommand{\url}[1]{\texttt{#1}}
+
+\geometry{top=2.2cm,bottom=2.2cm,left=3cm,right=2cm}
+\linespread{1.15}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\raggedbottom
+\makeatletter
+\def\@listi{\leftmargin\leftmargini \parsep 0pt \topsep 2pt \itemsep 0pt}
+\let\@listI\@listi
+\makeatother
+
+\pagestyle{plain}
+
+\renewcommand{\contentsname}{MỤC LỤC}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+
+\newcommand{\safeimage}[2][]{%
+    \IfFileExists{#2}{%
+        \includegraphics[#1]{#2}%
+    }{%
+        \fbox{%
+            \begin{minipage}[c][3.0cm][c]{0.86\textwidth}
+                \centering\small\textit{Chèn hình: #2}
+            \end{minipage}%
+        }%
+    }%
+}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    {\large \textbf{ĐẠI HỌC QUỐC GIA HÀ NỘI}}\\
+    {\large \textbf{TRƯỜNG ĐẠI HỌC CÔNG NGHỆ}}
+
+    \vspace{0.3cm}
+    \rule{8cm}{0.5pt}
+
+    \vspace{1.1cm}
+    \IfFileExists{logo.png}{\includegraphics[width=3.6cm]{logo.png}}{%
+        \fbox{\begin{minipage}[c][2.5cm][c]{3.6cm}\centering Logo\end{minipage}}}
+
+    \vspace{1.4cm}
+    {\LARGE \textbf{BÁO CÁO THỰC TẬP}}\\
+    \vspace{0.35cm}
+    {\large \textbf{NGÀNH: CÔNG NGHỆ THÔNG TIN}}
+
+    \vspace{1.3cm}
+    {\Large \textbf{ĐỀ TÀI: HỆ THỐNG PHÁT HIỆN ĐẠO VĂN MÃ NGUỒN}}\\
+    \vspace{0.15cm}
+    {\Large \textbf{(CODING PLAGIARISM CHECKER)}}
+
+    \vfill
+
+    \begin{flushleft}
+        \large
+        \hspace{2.3cm}\textbf{Giảng viên hướng dẫn:} TS. Lê Nguyên Khôi\\
+        \vspace{1.1cm}
+        \hspace{2.3cm}\textbf{Sinh viên:} Trịnh Ngọc Thống\\
+        \hspace{2.3cm}\textbf{Mã sinh viên:} 23020710\\
+        \hspace{2.3cm}\textbf{Lớp:} K68-J
+    \end{flushleft}
+
+    \vspace{1.2cm}
+    \centering
+    \textit{Hà Nội, tháng 10 năm 2026}
+\end{titlepage}
+
+\newpage
+\pagenumbering{roman}
+
+\section*{LỜI CẢM ƠN}
+\addcontentsline{toc}{section}{LỜI CẢM ƠN}
+\markboth{LỜI CẢM ƠN}{}
+
+Em xin cảm ơn Khoa Công nghệ Thông tin, Trường Đại học Công nghệ, Đại học Quốc gia Hà Nội đã tạo điều kiện để em thực hiện báo cáo thực tập.
+
+Em xin gửi lời cảm ơn chân thành đến TS. Lê Nguyên Khôi đã định hướng, góp ý chuyên môn và hỗ trợ em trong quá trình tìm hiểu bài toán, thiết kế hệ thống và hoàn thiện đề tài \textit{Coding Plagiarism Checker}.
+
+\vspace{0.8cm}
+\begin{flushright}
+    \textit{Hà Nội, ngày 05 tháng 10 năm 2026}\\
+    \textbf{Sinh viên thực hiện}\\
+    \vspace{1.2cm}
+    Trịnh Ngọc Thống
+\end{flushright}
+
+\newpage
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+
+\section{GIỚI THIỆU VÀ MỤC TIÊU}
+
+\subsection{Bối cảnh và lý do chọn đề tài}
+
+\begin{itemize}
+    \item Trong các học phần lập trình, giáo viên cần đánh giá cả kết quả chương trình và tính trung thực học thuật.
+    \item Kiểm tra thủ công từng cặp bài nộp tốn nhiều thời gian, đặc biệt với lớp đông sinh viên.
+    \item Đạo văn mã nguồn khó phát hiện bằng so khớp văn bản vì người sao chép có thể:
+    \begin{itemize}
+        \item đổi tên biến, tên hàm, comment hoặc định dạng;
+        \item thêm, xóa hoặc di chuyển một số đoạn lệnh;
+        \item giữ nguyên logic nhưng thay đổi hình thức mã nguồn.
+    \end{itemize}
+    \item Đề tài có giá trị thực tiễn vì kết hợp nhiều phần của một hệ thống web hoàn chỉnh: xác thực, phân quyền, quản lý lớp, upload file, lưu trữ object, message queue, phân tích mã nguồn và báo cáo kết quả.
+\end{itemize}
+
+\subsection{Mục tiêu và phạm vi}
+
+\begin{itemize}
+    \item \textbf{Mục tiêu chính:} xây dựng hệ thống web hỗ trợ phát hiện tương đồng mã nguồn trong lớp học lập trình.
+    \item \textbf{Người dùng chính:} sinh viên, giáo viên, quản trị nghiệp vụ và quản trị hệ thống.
+    \item \textbf{Chức năng cốt lõi:}
+    \begin{itemize}
+        \item đăng ký, đăng nhập, Google OAuth, JWT và phân quyền theo vai trò;
+        \item quản lý lớp học, giáo viên, sinh viên và bài tập;
+        \item sinh viên nộp file mã nguồn hoặc file nén;
+        \item lưu file lên MinIO, lưu metadata vào PostgreSQL;
+        \item phát sự kiện qua RabbitMQ để phân tích bất đồng bộ;
+        \item dùng JPlag để so sánh Java và C/C++, lưu báo cáo vào MongoDB;
+        \item hiển thị lịch sử nộp bài và báo cáo phân tích trên frontend.
+    \end{itemize}
+    \item \textbf{Ngoài phạm vi phiên bản hiện tại:} chấm điểm tự động, biên dịch và chạy test case, tích hợp LMS, hỗ trợ Python/C\#/JavaScript.
+\end{itemize}
+
+\begin{figure}[tbp]
+    \centering
+    \safeimage[width=0.78\textwidth]{dashboard.png}
+    \caption{Giao diện tổng quan của hệ thống}
+    \label{fig:dashboard}
+\end{figure}
+
+\section{CÔNG VIỆC THỰC HIỆN}
+
+\subsection{Các hạng mục đã hoàn thành}
+
+\begin{itemize}
+    \item Phân tích nghiệp vụ phát hiện đạo văn mã nguồn trong lớp học lập trình.
+    \item Thiết kế kiến trúc microservices gồm auth, submission, analyzer và module dùng chung.
+    \item Xây dựng backend bằng Java 17, Spring Boot 3 và Maven multi-module.
+    \item Xây dựng frontend bằng React, TypeScript, Vite và React Router.
+    \item Tích hợp PostgreSQL, MongoDB, RabbitMQ, MinIO và Docker Compose.
+    \item Viết test cho các phần quan trọng: tạo tài khoản, Google OAuth, reset mật khẩu, phân quyền lớp học/bài tập và smoke test ứng dụng.
+\end{itemize}
+
+\subsection{Vai trò người dùng}
+
+\begin{itemize}
+    \item \textbf{\texttt{STUDENT}:}
+    \begin{itemize}
+        \item tham gia lớp học bằng mã lớp;
+        \item xem bài tập trong lớp đã tham gia;
+        \item nộp bài và xem lịch sử bài nộp của bản thân.
+    \end{itemize}
+    \item \textbf{\texttt{TEACHER}:}
+    \begin{itemize}
+        \item tạo, cập nhật, xóa bài tập trong lớp được phân công;
+        \item xem danh sách bài nộp;
+        \item xem báo cáo phân tích do mình yêu cầu.
+    \end{itemize}
+    \item \textbf{\texttt{BUSINESS\_ADMIN}:}
+    \begin{itemize}
+        \item quản lý người dùng ở mức nghiệp vụ;
+        \item tạo lớp, gán giáo viên, quản lý danh sách sinh viên;
+        \item xem và quản lý báo cáo trong phạm vi quản trị.
+    \end{itemize}
+    \item \textbf{\texttt{SYSTEM\_ADMIN}:}
+    \begin{itemize}
+        \item quản lý tài khoản cấp hệ thống;
+        \item có quyền gán hoặc quản lý vai trò \texttt{SYSTEM\_ADMIN}.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Kế hoạch thực hiện}
+
+\begin{itemize}
+    \item \textbf{Giai đoạn 1: Nghiên cứu bài toán}
+    \begin{itemize}
+        \item tìm hiểu đạo văn mã nguồn và công cụ JPlag;
+        \item xác định luồng nghiệp vụ chính: lớp học, bài tập, bài nộp, báo cáo.
+    \end{itemize}
+    \item \textbf{Giai đoạn 2: Thiết kế hệ thống}
+    \begin{itemize}
+        \item chọn kiến trúc microservices;
+        \item thiết kế dữ liệu quan hệ cho người dùng/lớp/bài nộp và dữ liệu document cho báo cáo.
+    \end{itemize}
+    \item \textbf{Giai đoạn 3: Phát triển theo lát cắt chức năng}
+    \begin{itemize}
+        \item hoàn thiện từng luồng end-to-end: đăng nhập, quản lý lớp, tạo bài tập, nộp bài, xem báo cáo;
+        \item mỗi API backend được tích hợp với giao diện tương ứng.
+    \end{itemize}
+    \item \textbf{Giai đoạn 4: Đóng gói và kiểm thử}
+    \begin{itemize}
+        \item cấu hình Docker Compose cho môi trường local;
+        \item kiểm thử tự động và kiểm thử thủ công các luồng chính.
+    \end{itemize}
+\end{itemize}
+
+\section{BÀI TOÁN VÀ YÊU CẦU}
+
+\subsection{Luồng nghiệp vụ chính}
+
+\begin{enumerate}
+    \item Người dùng đăng nhập; hệ thống cấp JWT chứa \texttt{username} và \texttt{role}.
+    \item Quản trị viên tạo lớp học, mã lớp và danh sách giáo viên/sinh viên.
+    \item Sinh viên tham gia lớp bằng mã lớp.
+    \item Giáo viên tạo bài tập, thiết lập hạn nộp và ngôn ngữ phân tích: \texttt{AUTO}, \texttt{JAVA}, \texttt{CPP}.
+    \item Sinh viên upload bài nộp qua frontend.
+    \item \texttt{submission-service} kiểm tra quyền, hạn nộp, lưu file vào MinIO và metadata vào PostgreSQL.
+    \item Service phát sự kiện \texttt{submission.uploaded} qua exchange \texttt{plagiarism.exchange}.
+    \item \texttt{analyzer-service} nhận sự kiện từ \texttt{analysis.queue}; nếu có ít nhất hai bài nộp thì chạy phân tích.
+    \item Kết quả JPlag được lưu vào collection \texttt{analysis\_reports} trong MongoDB.
+    \item Giáo viên hoặc admin xem báo cáo trên giao diện web.
+\end{enumerate}
+
+\subsection{Phân tích các use case chính}
+
+\begin{figure}[tbp]
+    \centering
+    \safeimage[width=0.82\textwidth]{so-do-use-case.png}
+    \caption{Sơ đồ use case tổng thể của hệ thống}
+    \label{fig:usecase}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{UC01 -- Đăng ký, đăng nhập và xác thực:} Tác nhân gồm khách và mọi người dùng đã có tài khoản. Hệ thống kiểm tra thông tin qua \texttt{auth-service}, cấp JWT chứa username/role; ngoại lệ chính là sai thông tin đăng nhập, token không hợp lệ hoặc tài khoản cần đổi mật khẩu tạm thời.
+    \item \textbf{UC02 -- Quản lý người dùng:} \texttt{BUSINESS\_ADMIN} và \texttt{SYSTEM\_ADMIN} tạo tài khoản, cập nhật role hoặc xóa user. Ràng buộc quan trọng: chỉ \texttt{SYSTEM\_ADMIN} được quản lý tài khoản \texttt{SYSTEM\_ADMIN}; admin không được tự xóa chính mình.
+    \item \textbf{UC03 -- Quản lý lớp học:} \texttt{BUSINESS\_ADMIN} tạo/cập nhật lớp, mã lớp, giáo viên và sinh viên; \texttt{STUDENT} tham gia lớp bằng mã. Hệ thống chuẩn hóa mã lớp, chặn mã trùng hoặc sai định dạng.
+    \item \textbf{UC04 -- Quản lý bài tập:} \texttt{TEACHER} hoặc \texttt{BUSINESS\_ADMIN} tạo assignment, mô tả, deadline và ngôn ngữ phân tích. Giáo viên chỉ thao tác trên lớp được phân công hoặc assignment do mình tạo.
+    \item \textbf{UC05 -- Nộp bài:} \texttt{STUDENT} chọn assignment và upload file. \texttt{submission-service} kiểm tra quyền lớp học, deadline và file rỗng; file lưu vào MinIO, metadata lưu PostgreSQL, sau đó phát event \texttt{submission.uploaded}.
+    \item \textbf{UC06 -- Phân tích đạo văn mã nguồn:} \texttt{analyzer-service} nhận event từ RabbitMQ hoặc yêu cầu chạy thủ công từ giáo viên/admin. Service tải file từ MinIO, giải nén an toàn, lọc source Java/C/C++, xác định ngôn ngữ và chạy JPlag; nếu chưa đủ hai bài hoặc dữ liệu không hợp lệ thì bỏ qua/báo lỗi.
+    \item \textbf{UC07 -- Xem báo cáo phân tích:} \texttt{TEACHER} và \texttt{BUSINESS\_ADMIN} xem danh sách hoặc chi tiết report. Hệ thống chặn sinh viên, kiểm tra phạm vi báo cáo, rồi hiển thị similarity, matched tokens và vùng dòng mã trùng khớp.
+\end{itemize}
+
+\subsection{Yêu cầu chức năng}
+
+\begin{itemize}
+    \item \textbf{Xác thực và tài khoản:}
+    \begin{itemize}
+        \item đăng ký bằng email, cấp mật khẩu tạm thời qua email;
+        \item đăng nhập bằng username/password hoặc Google OAuth;
+        \item đổi thông tin cá nhân, avatar, quên mật khẩu và reset mật khẩu;
+        \item admin tạo, sửa role và xóa người dùng theo quyền.
+    \end{itemize}
+    \item \textbf{Lớp học và bài tập:}
+    \begin{itemize}
+        \item tạo/cập nhật/xóa lớp học, mã lớp là duy nhất;
+        \item gán giáo viên và danh sách sinh viên;
+        \item sinh viên tham gia lớp bằng mã;
+        \item giáo viên/admin tạo bài tập, chỉnh mô tả, deadline và ngôn ngữ.
+    \end{itemize}
+    \item \textbf{Bài nộp và phân tích:}
+    \begin{itemize}
+        \item sinh viên nộp file đúng hạn trong lớp đã tham gia;
+        \item hỗ trợ file mã nguồn đơn lẻ và file \texttt{.zip};
+        \item tự động phát sự kiện sau mỗi lần upload;
+        \item analyzer tải bài nộp, giải nén an toàn, lọc file Java/C/C++;
+        \item báo cáo gồm danh sách bài, tỷ lệ tương đồng, số token trùng và đoạn mã tương ứng.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Yêu cầu phi chức năng}
+
+\begin{itemize}
+    \item \textbf{Bảo mật:}
+    \begin{itemize}
+        \item API được bảo vệ bằng JWT với header \texttt{Authorization: Bearer <token>};
+        \item backend kiểm tra role bằng Spring Security;
+        \item frontend dùng route guard để chặn trang không đúng quyền;
+        \item secret, password, OAuth key và thông tin hạ tầng được cấu hình qua biến môi trường.
+    \end{itemize}
+    \item \textbf{Hiệu năng và ổn định:}
+    \begin{itemize}
+        \item upload và phân tích tách thành hai bước để request upload không phải chờ JPlag;
+        \item RabbitMQ giúp analyzer xử lý nền và dễ mở rộng worker;
+        \item MinIO lưu file lớn tốt hơn so với lưu trực tiếp trong database.
+    \end{itemize}
+    \item \textbf{Khả năng chạy cục bộ và bảo trì:}
+    \begin{itemize}
+        \item mỗi service có Dockerfile riêng;
+        \item \texttt{docker-compose.yml} phục vụ phát triển và kiểm thử local.
+    \end{itemize}
+\end{itemize}
+
+\section{GIẢI PHÁP KỸ THUẬT}
+
+\subsection{JPlag và phát hiện tương đồng}
+
+\begin{itemize}
+    \item JPlag không so sánh văn bản thô mà phân tích mã nguồn theo token của từng ngôn ngữ.
+    \item Cách tiếp cận token giảm ảnh hưởng của đổi tên biến, khoảng trắng, định dạng hoặc comment.
+    \item Trong dự án, \texttt{JPlagRunner}:
+    \begin{itemize}
+        \item tải từng bài nộp từ MinIO;
+        \item giải nén file \texttt{.zip} và chặn đường dẫn thoát khỏi thư mục đích;
+        \item loại bỏ UTF-8 BOM nếu có;
+        \item nhận diện ngôn ngữ \texttt{JAVA} hoặc \texttt{CPP} khi assignment đặt \texttt{AUTO};
+        \item chạy JPlag với \texttt{minimum-token-match} cấu hình được;
+        \item chuyển kết quả thành danh sách cặp so sánh, similarity, matched tokens và line ranges.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Kiến trúc microservices và bất đồng bộ}
+
+\begin{itemize}
+    \item Hệ thống tách trách nhiệm theo service:
+    \begin{itemize}
+        \item \texttt{auth-service}: tài khoản, JWT, Google OAuth, email/reset password;
+        \item \texttt{submission-service}: lớp học, bài tập, bài nộp, MinIO, RabbitMQ publisher;
+        \item \texttt{analyzer-service}: RabbitMQ listener, JPlag, MongoDB report;
+        \item \texttt{common}: hằng số, DTO dùng chung, event \texttt{SubmissionUploadedEvent}.
+    \end{itemize}
+    \item Lý do dùng RabbitMQ:
+    \begin{itemize}
+        \item phân tích mã nguồn có thể mất thời gian;
+        \item số bài nộp trong một assignment có thể tăng dần;
+        \item analyzer có thể chạy độc lập và không làm chậm request upload.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Công nghệ sử dụng}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{4cm}|p{4cm}|p{6cm}|}
+\hline
+\textbf{Thành phần} & \textbf{Công nghệ} & \textbf{Vai trò} \\
+\hline
+Backend & Java 17, Spring Boot 3 & REST API, bảo mật, nghiệp vụ \\
+\hline
+Frontend & React 18, TypeScript, Vite & Giao diện người dùng \\
+\hline
+Database quan hệ & PostgreSQL & User, classroom, assignment, submission \\
+\hline
+Database document & MongoDB & Lưu báo cáo phân tích \\
+\hline
+Message queue & RabbitMQ & Kết nối upload và analyzer \\
+\hline
+Object storage & MinIO & Lưu file bài nộp \\
+\hline
+Phân tích mã nguồn & JPlag 4.3.0 & So sánh Java và C/C++ \\
+\hline
+Hạ tầng local & Docker Compose & Chạy local nhiều service \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{THIẾT KẾ VÀ CÀI ĐẶT HỆ THỐNG}
+
+\subsection{Kiến trúc tổng thể}
+
+\begin{itemize}
+    \item Frontend gọi API đến các backend service theo từng nhóm chức năng.
+    \item Các service backend cùng dùng JWT secret để xác thực token.
+    \item PostgreSQL lưu dữ liệu có quan hệ; MongoDB lưu báo cáo có cấu trúc lồng nhau; MinIO lưu file; RabbitMQ truyền sự kiện.
+\end{itemize}
+
+\begin{figure}[tbp]
+    \centering
+    \safeimage[width=0.78\textwidth]{so-do-kien-truc.png}
+    \caption{Kiến trúc tổng thể của hệ thống}
+    \label{fig:architecture}
+\end{figure}
+
+\subsection{Thiết kế dữ liệu}
+
+\begin{itemize}
+    \item \textbf{Auth database:}
+    \begin{itemize}
+        \item bảng \texttt{users}: username, email, password hash, role, avatar, trạng thái yêu cầu đổi mật khẩu;
+        \item bảng \texttt{password\_reset\_tokens}: token reset mật khẩu đã hash, thời hạn và trạng thái tiêu thụ.
+    \end{itemize}
+    \item \textbf{Submission database:}
+    \begin{itemize}
+        \item \texttt{classrooms}: tên lớp, mã lớp, mô tả, người tạo;
+        \item \texttt{classroom\_teachers}, \texttt{classroom\_students}: danh sách username theo lớp;
+        \item \texttt{assignments}: lớp, tiêu đề, mô tả, deadline, ngôn ngữ;
+        \item \texttt{submissions}: assignment, người nộp, tên file gốc, object key MinIO, dung lượng, content type, trạng thái.
+    \end{itemize}
+    \item \textbf{MongoDB:}
+    \begin{itemize}
+        \item collection \texttt{analysis\_reports}: assignment id, ngôn ngữ, số bài nộp, thời gian chạy, người yêu cầu, source files và danh sách cặp so sánh.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Các service chính}
+
+\begin{itemize}
+    \item \textbf{\texttt{auth-service}:}
+    \begin{itemize}
+        \item API chính: đăng ký, đăng nhập, lấy thông tin hiện tại, reset mật khẩu và quản trị người dùng;
+        \item dùng BCrypt để hash mật khẩu;
+        \item sinh JWT bằng HS256, token chứa subject là username và claim \texttt{role};
+        \item Google OAuth tạo hoặc kích hoạt tài khoản \texttt{STUDENT}.
+    \end{itemize}
+    \item \textbf{\texttt{submission-service}:}
+    \begin{itemize}
+        \item API chính: quản lý lớp học, tham gia lớp, quản lý bài tập và upload bài nộp;
+        \item kiểm tra quyền theo vai trò và quan hệ với classroom;
+        \item từ chối bài nộp ngoài lớp hoặc sau deadline;
+        \item mỗi sinh viên giữ bản nộp mới nhất cho một assignment, nhưng sự kiện gửi toàn bộ danh sách bài hiện có để analyzer so sánh.
+    \end{itemize}
+    \item \textbf{\texttt{analyzer-service}:}
+    \begin{itemize}
+        \item lắng nghe \texttt{analysis.queue};
+        \item bỏ qua assignment chưa đủ hai bài nộp;
+        \item cung cấp API \texttt{/api/reports/compare}, \texttt{/api/reports}, \texttt{/api/reports/\{id\}};
+        \item giới hạn quyền xem báo cáo cho teacher đã yêu cầu phân tích hoặc admin.
+    \end{itemize}
+    \item \textbf{Frontend:}
+    \begin{itemize}
+        \item route công khai: trang chủ, đăng nhập, đăng ký, reset password, OAuth callback;
+        \item route bảo vệ: dashboard, hồ sơ cá nhân;
+        \item \texttt{STUDENT}: trang upload bài;
+        \item \texttt{TEACHER}/\texttt{BUSINESS\_ADMIN}: lịch sử bài nộp và báo cáo;
+        \item \texttt{BUSINESS\_ADMIN}/\texttt{SYSTEM\_ADMIN}: quản lý người dùng; \texttt{BUSINESS\_ADMIN}: quản lý lớp học.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Quy trình nộp bài và phân tích}
+
+\begin{itemize}
+    \item Sinh viên upload file qua frontend.
+    \item \texttt{submission-service} kiểm tra quyền, deadline và file rỗng.
+    \item File được lưu trong MinIO theo thư mục assignment/người nộp và có UUID để tránh trùng tên.
+    \item Metadata được lưu vào bảng \texttt{submissions}.
+    \item Event \texttt{SubmissionUploadedEvent} chứa assignment id, ngôn ngữ, người yêu cầu và danh sách bài nộp.
+    \item \texttt{analyzer-service} tải file, chuẩn hóa dữ liệu, chạy JPlag và lưu báo cáo.
+\end{itemize}
+
+\begin{figure}[tbp]
+    \centering
+    \safeimage[width=0.78\textwidth]{seq-nop-bai.png}
+    \caption{Quy trình nộp bài và phân tích đạo văn}
+    \label{fig:seq-submit}
+\end{figure}
+
+\subsection{Chạy cục bộ}
+
+\begin{itemize}
+    \item \texttt{docker-compose.yml} khởi động PostgreSQL, MongoDB, RabbitMQ, MinIO và ba backend service;
+    \item frontend chạy bằng Vite trong thư mục \texttt{frontend};
+    \item các service có healthcheck để đảm bảo thứ tự khởi động;
+    \item cấu hình quan trọng lấy từ biến môi trường, tránh hard-code secret trong mã nguồn;
+    \item dữ liệu phụ trợ được lưu trong Docker volume local khi chạy thử.
+\end{itemize}
+
+\section{KẾT QUẢ, KIỂM THỬ VÀ HƯỚNG PHÁT TRIỂN}
+
+\subsection{Kết quả đạt được}
+
+\begin{itemize}
+    \item Hoàn thiện hệ thống web phát hiện tương đồng mã nguồn theo kiến trúc microservices.
+    \item Có xác thực, phân quyền, Google OAuth, reset password và quản lý tài khoản.
+    \item Có quản lý lớp học, gán giáo viên, sinh viên tham gia lớp, tạo bài tập và deadline.
+    \item Có upload bài nộp, lưu file trên MinIO và lưu metadata trên PostgreSQL.
+    \item Có xử lý bất đồng bộ qua RabbitMQ và analyzer tự động chạy khi đủ bài nộp.
+    \item Có báo cáo JPlag cho Java và C/C++, lưu trong MongoDB và hiển thị trên frontend.
+\end{itemize}
+
+\begin{figure}[tbp]
+    \centering
+    \safeimage[width=0.78\textwidth]{giao-dien-bao-cao.png}
+    \caption{Giao diện báo cáo phân tích đạo văn}
+    \label{fig:report}
+\end{figure}
+
+\subsection{Kiểm thử}
+
+\begin{itemize}
+    \item \textbf{Test tự động đã có trong repository:}
+    \begin{itemize}
+        \item Test \texttt{UserService}: đăng ký email, Google OAuth, reset mật khẩu, cập nhật hồ sơ, xóa user;
+        \item \texttt{UserRoleTest}: chuẩn hóa vai trò người dùng;
+        \item Test truy cập lớp học/bài tập: phân quyền, tạo assignment đúng phạm vi, mã lớp không trùng, sinh viên join lớp;
+        \item smoke test cho \texttt{auth}, \texttt{submission}, \texttt{analyzer}.
+    \end{itemize}
+    \item \textbf{Test thủ công theo luồng end-to-end:}
+    \begin{itemize}
+        \item admin tạo user, lớp học và gán giáo viên;
+        \item sinh viên join lớp và nộp bài;
+        \item hệ thống lưu file lên MinIO, gửi event RabbitMQ;
+        \item analyzer tạo report khi có ít nhất hai bài;
+        \item giáo viên xem báo cáo, sinh viên bị chặn khi truy cập report.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Kiến thức thu được}
+
+\begin{itemize}
+    \item Thiết kế REST API và phân quyền bằng Spring Security/JWT.
+    \item Tổ chức dự án Java theo Maven multi-module.
+    \item Tích hợp React frontend với nhiều backend service.
+    \item Sử dụng PostgreSQL cho dữ liệu quan hệ, MongoDB cho dữ liệu báo cáo, MinIO cho file và RabbitMQ cho xử lý nền.
+    \item Thiết kế luồng bất đồng bộ để tách upload khỏi tác vụ phân tích tốn thời gian.
+\end{itemize}
+
+\subsection{Hạn chế và hướng phát triển}
+
+\begin{itemize}
+    \item \textbf{Hạn chế:}
+    \begin{itemize}
+        \item mới hỗ trợ Java và C/C++;
+        \item chưa có xuất báo cáo PDF/Excel;
+        \item chưa có dashboard thống kê theo lớp hoặc assignment;
+        \item retry và dead-letter queue cho analyzer còn đơn giản;
+        \item chưa có trạng thái phân tích chi tiết như \texttt{PENDING}, \texttt{RUNNING}, \texttt{COMPLETED}, \texttt{FAILED}.
+    \end{itemize}
+    \item \textbf{Hướng phát triển:}
+    \begin{itemize}
+        \item hỗ trợ thêm Python, C\#, JavaScript;
+        \item cho phép giáo viên đặt ngưỡng cảnh báo similarity;
+        \item cải thiện giao diện so sánh đoạn mã song song;
+        \item bổ sung xuất báo cáo và thống kê tổng hợp;
+        \item thêm retry, dead-letter queue và theo dõi trạng thái job;
+        \item tích hợp LMS hoặc hệ thống chấm bài tự động.
+    \end{itemize}
+\end{itemize}
+
+\section*{TÀI LIỆU THAM KHẢO}
+\addcontentsline{toc}{section}{TÀI LIỆU THAM KHẢO}
+\markboth{TÀI LIỆU THAM KHẢO}{}
+
+{\renewcommand{\labelenumi}{[\arabic{enumi}]}
+\begin{enumerate}
+    \item Spring Boot Documentation, \url{https://spring.io/projects/spring-boot}
+    \item React Documentation, \url{https://react.dev}
+    \item JPlag Project, \url{https://github.com/jplag/JPlag}
+    \item RabbitMQ Documentation, \url{https://www.rabbitmq.com/documentation.html}
+    \item MinIO Documentation, \url{https://min.io/docs/minio/container/index.html}
+    \item MongoDB Documentation, \url{https://www.mongodb.com/docs}
+    \item PostgreSQL Documentation, \url{https://www.postgresql.org/docs}
+    \item Docker Documentation, \url{https://docs.docker.com}
+\end{enumerate}}
+
+\newpage
+\section*{Ý KIẾN ĐÁNH GIÁ}
+\addcontentsline{toc}{section}{Ý KIẾN ĐÁNH GIÁ}
+\markboth{Ý KIẾN ĐÁNH GIÁ}{}
+
+\vspace{0.5cm}
+\noindent\dotfill
+
+\vspace{0.8cm}
+\noindent\dotfill
+
+\vspace{0.8cm}
+\noindent\dotfill
+
+\vspace{0.8cm}
+\noindent\dotfill
+
+\vspace{0.8cm}
+\noindent\dotfill
+
+\vspace{1.2cm}
+\noindent \textbf{Điểm số:} \dotfill \quad \textbf{Điểm chữ:} \dotfill
+
+\vspace{1.2cm}
+\begin{flushright}
+Hà Nội, ngày \hspace{1cm} tháng \hspace{1cm} năm 20\hspace{0.5cm}.\\
+\vspace{0.5cm}
+\textbf{Giảng viên đánh giá}\\
+(Ký, ghi rõ họ tên)
+\end{flushright}
+
+\end{document}
